@@ -14,6 +14,15 @@ spec.loader.exec_module(diagnostic)
 
 
 class QgisDiagnostics(unittest.TestCase):
+    def test_recovery_launcher_uses_fresh_process_with_the_passing_environment(self):
+        with patch.object(diagnostic.sys, 'argv', ['qgis_diagnose.py', '--launch-gui']), \
+                patch.object(diagnostic, 'bundled_environment', return_value={'PATH': 'own-runtime'}) as clean, \
+                patch.object(diagnostic.subprocess, 'call', return_value=7) as launch:
+            self.assertEqual(diagnostic.main(), 7)
+        clean.assert_called_once()
+        self.assertEqual(launch.call_args.args[0][-3:], ['-m', 'mapgis_annotations', 'gui'])
+        self.assertEqual(launch.call_args.kwargs['env'], {'PATH': 'own-runtime'})
+
     def test_windows_probe_isolated_without_modifying_parent(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

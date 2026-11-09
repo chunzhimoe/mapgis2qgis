@@ -31,6 +31,14 @@ Set-Location "$env:USERPROFILE\Downloads"
 
 若第一项失败、第二项通过，说明这两组启动环境的差异影响了导入，可据报告继续定位；两项均失败时，查看具体模块和 traceback，检查缺失文件或版本问题。`PASS` 只表示本次导入检查通过，不代表 PDF 导出已验证。失败探测退出码为 1 属于预期诊断结果，报告仍会写出。
 
+若 `normal: FAIL`、`bundled_environment: PASS`，可关闭原来的 GUI，在下载目录执行下面命令打开使用内置环境的新窗口（PowerShell）：
+
+```powershell
+& 'E:\map2gis\python.exe' .\qgis_diagnose.py --launch-gui
+```
+
+这会在新进程中使用与通过检查相同的环境，不重装、不改系统环境变量。请在新窗口重新选择输入和一个新的输出目录；该方式用于现有 0.4.3 的临时恢复。原来的开始菜单快捷方式仍使用旧启动流程。
+
 如果急需先导出数据，可取消 GUI 的“生成全图 QGIS/PDF”并另选一个新输出目录；纯数据流程不依赖 PyQGIS。要生成地图仍需解决该导入错误，修改 `strict_native` 或字号配置不能解决它。
 
 参考：[QGIS 官方独立应用配置说明](https://docs.qgis.org/3.40/en/docs/pyqgis_developer_cookbook/intro.html#running-custom-applications)、[Conda QGIS Windows 激活脚本](https://github.com/conda-forge/qgis-feedstock/blob/main/recipe/scripts/activate.bat)。

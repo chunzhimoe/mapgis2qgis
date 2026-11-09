@@ -114,8 +114,13 @@ def run_probe(environment):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('qgis-diagnostic.json'))
+    parser.add_argument('--launch-gui', action='store_true',
+                        help='Open the installed GUI in the isolated bundled environment')
     parser.add_argument('--probe', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
+    if args.launch_gui:
+        env = bundled_environment(os.environ, Path(sys.prefix), os.name == 'nt')
+        return subprocess.call([sys.executable, '-s', '-m', 'mapgis_annotations', 'gui'], env=env)
     if args.probe:
         print(json.dumps(probe(), ensure_ascii=True))
         return 0
