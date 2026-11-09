@@ -74,11 +74,11 @@ jobs:
           else
             filename=Miniforge3-MacOSX-arm64.sh
           fi
-          metadata=$(gh api "repos/conda-forge/miniforge/releases/tags/$MINIFORGE_VERSION" --jq ".assets[] | select(.name == \"$filename\") | [.id,.digest] | @tsv")
+          metadata=$(gh api "repos/conda-forge/miniforge/releases/tags/$MINIFORGE_VERSION" --jq ".assets[] | select(.name == \"$filename\") | [.id,.digest] | @tsv" | tr -d '\r')
           read -r asset_id expected <<< "$metadata"
           [[ "$asset_id" =~ ^[0-9]+$ && "$expected" == sha256:* ]]
           installer="$RUNNER_TEMP/$filename"
-          gh api -H 'Accept: application/octet-stream' "repos/conda-forge/miniforge/releases/assets/$asset_id" > "$installer"
+          gh release download "$MINIFORGE_VERSION" --repo conda-forge/miniforge --pattern "$filename" --dir "$RUNNER_TEMP" --clobber
           if [[ "$TARGET_PLATFORM" == 'win-64' ]]; then
             actual=$(sha256sum "$installer" | cut -d ' ' -f 1)
             url="file:///$(cygpath -m "$installer")"
@@ -86,7 +86,11 @@ jobs:
             actual=$(shasum -a 256 "$installer" | cut -d ' ' -f 1)
             url="file://$installer"
           fi
-          test "$actual" = "${expected#sha256:}"
+          if [[ "$actual" != "${expected#sha256:}" ]]; then
+            echo "::error::Checksum mismatch for $filename: expected $expected, got $actual"
+            exit 1
+          fi
+          echo "Verified $filename ($actual)"
           echo "url=$url" >> "$GITHUB_OUTPUT"
       - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
         with:
