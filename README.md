@@ -8,6 +8,7 @@ mapgis-annotations pipeline 原生图件目录 新结果目录 --config examples
 ```
 
 完整流程见 [docs/PIPELINE.md](docs/PIPELINE.md)，GUI 见 [docs/GUI.md](docs/GUI.md)。
+0.4.5 的「多选文件/工程」支持一次选择多份 WT/WL/WP、MPJ 或 SHP，按同一组图层转换并生成一套地图成果；SHP 配套文件自动携带，未选中的同目录文件不导入。
 Windows 提示 PyQGIS 导入失败时，先用[独立诊断脚本](docs/QGIS_DIAGNOSTICS.md)获取真实 ImportError，不需要另装 QGIS 或修改处理 JSON。
 0.4.4 的 Windows 离线启动器与 GUI 转换进程隔离外部 Python/QGIS/Qt 路径，修复继承其他软件环境导致的 `qgis._core` DLL 导入错误；只调整当前应用进程，不修改系统环境变量。
 七套可直接选择的 JSON 见 [配置文件与使用说明](examples/profiles/README.md)：通用完整 PDF、严格完整 PDF、快速预览、仅数据、已有 SHP 制图、五龙沟连排与局部图，以及 0.4.3 自动字号全图。Release 同时提供 `MapGIS2QGIS-profiles.zip`；已有 0.4.0 安装包可使用 01–06，07 需 0.4.3。PDF 输出位置为你选择的输出目录下 `map/map.pdf`。

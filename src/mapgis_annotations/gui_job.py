@@ -10,29 +10,27 @@ import sys
 import tempfile
 import threading
 import time
+from typing import Union
 
 from .errors import AnnotationError
 from .pipeline import PipelineConfig
 from .runtime import desktop_environment, is_windows_bundle
+from .input_selection import normalize_source, validate_output
 
 
 @dataclass
 class JobSpec:
-    source: Path
+    source: Union[Path, tuple]
     output: Path
     config: dict
 
 
 def make_job(source, output, profile='', *, render=False, epsg='', factor='', dpi='300', width='1000',
              font_size='9', font_unit='points', input_format=None, auto_font_size=None):
-    if not str(source).strip() or not str(output).strip():
+    if not source or not str(output).strip():
         raise AnnotationError('请选择输入数据和输出目录')
-    source, output = Path(source).expanduser().resolve(), Path(output).expanduser().resolve()
-    root = source if source.is_dir() else source.parent
-    if not source.exists():
-        raise AnnotationError('输入数据不存在')
-    if output.exists() or output.is_relative_to(root) or root.is_relative_to(output):
-        raise AnnotationError('输出须为输入目录以外的新目录')
+    source = normalize_source(source)
+    output = validate_output(source, output)
     config = PipelineConfig.from_dict(json.loads(Path(profile).read_text(encoding='utf-8-sig'))) if profile else PipelineConfig()
     if input_format is not None:
         config.input_format = input_format
@@ -80,7 +78,12 @@ class JobRunner:
                 root = Path(temporary)
                 config, events, cancel, log = (root/name for name in ('config.json','events.jsonl','cancel','worker.log'))
                 config.write_text(json.dumps(spec.config, ensure_ascii=False), encoding='utf-8')
-                command = [sys.executable, '-m', 'mapgis_annotations', 'pipeline', str(spec.source), str(spec.output),
+                inputs = [str(spec.source)]
+                if isinstance(spec.source, tuple):
+                    selection = root/'sources.json'
+                    selection.write_text(json.dumps([str(p) for p in spec.source], ensure_ascii=False), encoding='utf-8')
+                    inputs = ['--source-list', str(selection)]
+                command = [sys.executable, '-m', 'mapgis_annotations', 'pipeline', *inputs, str(spec.output),
                            '--config', str(config), '--events', str(events), '--cancel-file', str(cancel)]
                 if is_windows_bundle():
                     command.insert(1, '-I')

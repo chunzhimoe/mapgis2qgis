@@ -497,7 +497,18 @@ def read_mpj_paths(path):
 
 
 def native_files(source):
-    """-> (name, [work files], [missing project layers]) for a folder, .mpj or single file."""
+    """-> (name, work files, missing layers) for a folder, file or explicit file list."""
+    if isinstance(source, (list, tuple)):
+        from .input_selection import normalize_source
+        selected = normalize_source(source)
+        paths, missing = [], []
+        for item in selected:
+            if item.suffix.upper() not in set(EXT_KIND) | {'.MPJ'}:
+                raise NativeFormatError('Unsupported selected MapGIS file: '+str(item))
+            _, files, absent = native_files(item)
+            paths.extend(p.resolve() for p in files)
+            missing.extend(absent)
+        return selected[0].stem+'_selection', list(dict.fromkeys(paths)), list(dict.fromkeys(missing))
     source = Path(source)
     if source.is_file() and source.suffix.lower() == '.mpj':
         paths = read_mpj_paths(source)

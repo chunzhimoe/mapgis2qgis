@@ -122,6 +122,8 @@ jobs:
           sudo installer -pkg "${packages[0]}" -target /
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/installed-gui.json
+          "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/multiselect-gui.json --multi
+          "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/multiselect-shp-gui.json --multi-shp
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/profiles_smoke.py dist/installers/profiles-smoke.json
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/fonts_smoke.py dist/installers/font-check
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/auto_font_smoke.py dist/installers/auto-font.json
@@ -147,6 +149,10 @@ jobs:
           & "$prefix/python.exe" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$prefix/python.exe" tests/gui_smoke.py dist/installers/installed-gui.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/gui_smoke.py dist/installers/multiselect-gui.json --multi
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/gui_smoke.py dist/installers/multiselect-shp-gui.json --multi-shp
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$prefix/python.exe" tests/profiles_smoke.py dist/installers/profiles-smoke.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -186,6 +192,8 @@ jobs:
           cp dist/installers/build.json "dist/release/build-$TARGET_PLATFORM.json"
           cp dist/installers/installed-runtime.json "dist/release/runtime-$TARGET_PLATFORM.json"
           cp dist/installers/installed-gui.json "dist/release/gui-$TARGET_PLATFORM.json"
+          cp dist/installers/multiselect-gui.json "dist/release/multiselect-gui-$TARGET_PLATFORM.json"
+          cp dist/installers/multiselect-shp-gui.json "dist/release/multiselect-shp-gui-$TARGET_PLATFORM.json"
           cp dist/installers/profiles-smoke.json "dist/release/profiles-$TARGET_PLATFORM.json"
           cp dist/installers/font-check/font-validation.json "dist/release/fonts-$TARGET_PLATFORM.json"
           cp dist/installers/auto-font.json "dist/release/auto-font-$TARGET_PLATFORM.json"

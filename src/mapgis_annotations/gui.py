@@ -49,10 +49,11 @@ class Workbench:
         ttk.Label(body, text='从原生图件到可核验成果', style='Title.TLabel').pack(anchor='w')
         ttk.Label(body, text='支持 MapGIS 6.x 点、线、区、工程文件及已导出的 SHP').pack(anchor='w', pady=(6,18))
         self.source, self.output, self.profile = (tk.StringVar() for _ in range(3))
+        self.selected_files, self.selection_text = (), ''
         self.form = ttk.Frame(body)
         self.form.pack(fill='x')
         self.form.columnconfigure(1, weight=1)
-        self._path_row(0, '输入数据', self.source, [('文件夹', self.choose_source_folder), ('文件/工程', self.choose_source_file)])
+        self._path_row(0, '输入数据', self.source, [('文件夹', self.choose_source_folder), ('多选文件/工程', self.choose_source_file)])
         self._path_row(1, '新输出目录', self.output, [('选择位置', self.choose_output)])
         self._path_row(2, '处理配置', self.profile, [('选择 JSON', self.choose_profile), ('五龙沟示例', self.example)])
         advanced = ttk.LabelFrame(body, text='坐标与制图选项', padding=12)
@@ -122,19 +123,43 @@ class Workbench:
         from tkinter import filedialog
         path = filedialog.askdirectory(title='选择 MapGIS 或 SHP 文件夹')
         if path:
+            self.selected_files, self.selection_text = (), ''
             self.source.set(path)
 
     def choose_source_file(self):
         from tkinter import filedialog
-        path = filedialog.askopenfilename(title='选择 MapGIS 文件', filetypes=[('MapGIS','*.MPJ *.mpj *.WT *.wt *.WL *.wl *.WP *.wp'),('所有文件','*')])
-        if path:
-            self.source.set(path)
+        paths = filedialog.askopenfilenames(title='选择图层或工程（可多选，同组转换）',
+            filetypes=[('MapGIS 或 SHP','*.MPJ *.mpj *.WT *.wt *.WL *.wl *.WP *.wp *.shp *.SHP'),
+                       ('MapGIS','*.MPJ *.mpj *.WT *.wt *.WL *.wl *.WP *.wp'),
+                       ('Shapefile','*.shp *.SHP'),('所有文件','*')])
+        if paths:
+            self.set_source_files(paths)
+
+    def set_source_files(self, paths):
+        self.selected_files = tuple(dict.fromkeys(str(p) for p in paths))
+        if not self.selected_files:
+            return
+        if len(self.selected_files) == 1:
+            self.selection_text = self.selected_files[0]
+        else:
+            names = '、'.join(Path(p).name for p in self.selected_files[:3])
+            self.selection_text = '已选 %d 个文件：%s%s' % (
+                len(self.selected_files), names, '…' if len(self.selected_files) > 3 else '')
+        self.source.set(self.selection_text)
+
+    def source_value(self):
+        # Manual edits in the input entry replace a previous multi-selection.
+        if self.selected_files and self.source.get() == self.selection_text:
+            return self.selected_files if len(self.selected_files) > 1 else self.selected_files[0]
+        return self.source.get()
 
     def choose_output(self):
         from tkinter import filedialog
         parent = filedialog.askdirectory(title='选择输出父目录，将在其中新建结果文件夹')
         if parent:
-            stem = Path(self.source.get()).stem if self.source.get() else 'MapGIS'
+            source = self.source_value()
+            stem = Path(source[0]).stem+'_等%d文件' % len(source) if isinstance(source, tuple) else (
+                Path(source).stem if source else 'MapGIS')
             path, index = Path(parent)/(stem+'_转换结果'), 2
             while path.exists():
                 path = Path(parent)/(stem+'_转换结果_'+str(index))
@@ -178,7 +203,7 @@ class Workbench:
     def start(self):
         from tkinter import messagebox
         try:
-            spec = make_job(self.source.get(), self.output.get(), self.profile.get(), render=self.render.get(),
+            spec = make_job(self.source_value(), self.output.get(), self.profile.get(), render=self.render.get(),
                             epsg=self.epsg.get(), factor=self.factor.get(), dpi=self.dpi.get(), width=self.width.get(),
                             font_size=self.size.get(), font_unit=self.unit.get(), auto_font_size=self.auto_font.get())
             self.runner.start(spec)
@@ -188,7 +213,8 @@ class Workbench:
         self.result = None
         self.progress['value'] = 0
         self.state.set('正在准备数据…')
-        self.append('开始：'+str(spec.source)+'\n输出：'+str(spec.output))
+        sources = spec.source if isinstance(spec.source, tuple) else (spec.source,)
+        self.append('开始：'+'\n'.join(str(p) for p in sources)+'\n输出：'+str(spec.output))
         self.start_button.configure(state='disabled')
         self.cancel_button.configure(state='normal')
         for widget in self.controls:

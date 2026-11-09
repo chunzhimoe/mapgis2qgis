@@ -29,8 +29,9 @@ def main(argv=None):
     commands = parser.add_subparsers(dest='command', required=True)
     commands.add_parser('gui', help='Open the desktop conversion workbench')
     pipeline = commands.add_parser('pipeline', help='Complete native/SHP conversion, audit and optional rendering')
-    pipeline.add_argument('source')
+    pipeline.add_argument('source', nargs='?')
     pipeline.add_argument('output')
+    pipeline.add_argument('--source-list', help='UTF-8 JSON array of selected input files, instead of source')
     pipeline.add_argument('--config')
     pipeline.add_argument('--render', action='store_true')
     pipeline.add_argument('--events', help='Write stage progress as JSON lines')
@@ -81,11 +82,20 @@ def main(argv=None):
             options = PipelineConfig.from_dict(json.loads(Path(args.config).read_text(encoding='utf-8'))) if args.config else PipelineConfig()
             if args.render:
                 options.render['enabled'] = True
+            source = args.source
+            if args.source_list:
+                if source is not None:
+                    raise AnnotationError('Use either source or --source-list, not both')
+                source = json.loads(Path(args.source_list).read_text(encoding='utf-8-sig'))
+                if not isinstance(source, list):
+                    raise AnnotationError('--source-list must contain a JSON array of file paths')
+            if source is None:
+                raise AnnotationError('Specify source or --source-list')
             def progress(event):
                 if args.events:
                     with Path(args.events).open('a', encoding='utf-8') as handle:
                         handle.write(json.dumps(event, ensure_ascii=False) + '\n')
-            result = run_pipeline(args.source, args.output, options, progress=progress,
+            result = run_pipeline(source, args.output, options, progress=progress,
                                   cancelled=lambda: bool(args.cancel_file and Path(args.cancel_file).exists()))
             result = {k: result[k] for k in ('status','output','native_summary','annotations','map')}
         elif args.command == 'from-mapgis':

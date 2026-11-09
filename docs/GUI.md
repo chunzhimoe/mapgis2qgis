@@ -6,7 +6,7 @@ mapgis-annotations gui
 python -m mapgis_annotations gui
 ```
 
-1. 选择原生文件夹、WT/WL/WP、MPJ工程，或已有SHP文件夹。
+1. 选择原生文件夹或已有SHP文件夹；也可点击「多选文件/工程」，按住 Ctrl（Mac 为 Command）选多个文件，或用 Shift 连续选择。支持 WT/WL/WP、MPJ 或 SHP。
 2. 选择输出父目录。工作台会建议一个尚不存在的新目录，输入保持不变。
 3. 通用自动识别可不选配置；地区配对/点面关系使用JSON。五龙沟示例是显式可选配置，不是默认规则。
    可直接选择的七套完整配置及参数说明见 [examples/profiles](../examples/profiles/README.md)。常规全图/PDF建议用 `01_generic_full_pdf.json`，自动字号专用配置为 0.4.3 的 `07_auto_full_pdf.json`。
@@ -16,6 +16,10 @@ python -m mapgis_annotations gui
 7. 完成后可打开标准注记数据、高清PNG及QGIS工程。预览自动缩放到可用区域，高清图可单独打开。
 
 PDF 位于你选择的新输出目录下 `map/map.pdf`；QGIS 工程是 `map/map.qgz`，全图图片是 `map/map.png`。「打开全图」按钮打开 PNG。绘图开启且整个任务验收通过后才发布这些文件。
+
+0.4.5 起，多选文件作为同一组图层转换，生成一套成果与一张全图。输入栏显示数量和文件名，运行记录列出完整路径；重新选择文件夹或手动输入路径会替换原选择。只处理选中的文件及 MPJ 引用的图层，不自动导入同目录其他图层；MPJ 与直接选择的文件有重复时只导入一次。不同独立图件建议分别运行。
+
+SHP 只需选择 `.shp`，同名 `.dbf/.shx/.prj/.cpg` 会自动携带，不用逐个选择；原生 MapGIS 和 SHP 须分开选择。同名 SHP 图层来自不同目录时需先重命名或分组导入，避免属性配置含糊；原生同名图层沿用已有后缀编号规则。取消选择对话框保留原选择。
 
 从 0.4.1 起，加载只含 `strict_native=false` 等部分参数的 JSON 会保留当前绘图勾选、幅宽、DPI 和字号；配置明确写出的绘图参数才更新界面。完整配置中的 `render.enabled=true` 会勾选绘图。支持 Windows 记事本保存的 UTF-8 BOM 配置，并尊重配置指定的 `input_format`。加载后仍可在界面调整显示的参数，开始时以界面值为准。
 

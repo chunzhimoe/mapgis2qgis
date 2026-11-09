@@ -2,12 +2,14 @@
 from dataclasses import dataclass, field
 import json
 from pathlib import Path
+import shutil
 import tempfile
 
 from .errors import AnnotationError
 from .georef import export_native
 from .mapgis_native import EXT_KIND
-from .shapefiles import publish, sha256
+from .shapefiles import companion, publish, sha256
+from .input_selection import normalize_source, source_paths, source_description, validate_output
 from .workflow import WorkflowConfig, run_workflow, verify_dataset, write_json
 from .audit import audit_shapefiles
 
@@ -61,6 +63,21 @@ class PipelineConfig:
 
 
 def _kind(source, requested):
+    if isinstance(source, tuple) or source.is_file() and source.suffix.lower() == '.shp':
+        kinds = set()
+        for path in source_paths(source):
+            if path.suffix.upper() in set(EXT_KIND) | {'.MPJ'}:
+                kinds.add('native')
+            elif path.suffix.lower() == '.shp':
+                kinds.add('shp')
+            else:
+                raise AnnotationError('不支持的输入文件：'+str(path))
+        if len(kinds) != 1:
+            raise AnnotationError('原生 MapGIS 与 SHP 请分开选择和转换')
+        kind = kinds.pop()
+        if requested != 'auto' and requested != kind:
+            raise AnnotationError('所选文件与配置 input_format 不一致')
+        return kind
     if requested != 'auto':
         return requested
     if source.is_file():
@@ -74,6 +91,24 @@ def _kind(source, requested):
     if not native and not shp:
         raise AnnotationError('No native MapGIS or SHP data found')
     return 'native' if native else 'shp'
+
+
+def _selected_shapefiles(source, destination):
+    """Keep a durable exact selection, including companions and original hashes."""
+    seen, files = set(), []
+    for path in source_paths(source):
+        if path.stem.casefold() in seen:
+            raise AnnotationError('所选 SHP 存在同名图层，请先重命名或分组导入：'+path.stem)
+        seen.add(path.stem.casefold())
+        for suffix in ('.shp', '.shx', '.dbf', '.prj', '.cpg'):
+            item = companion(path, suffix, required=suffix in ('.shp', '.dbf'))
+            if item:
+                files.append((item, destination/(path.stem+suffix)))
+    sources = {str(p): sha256(p) for p, _ in files}
+    destination.mkdir()
+    for path, target in files:
+        shutil.copyfile(path, target)
+    return sources
 
 
 def _relocate(value, old, new):
@@ -103,12 +138,8 @@ def run_pipeline(source, output, config=None, *, progress=None, cancelled=None):
     if not isinstance(config, PipelineConfig):
         raise AnnotationError('config must be PipelineConfig or dictionary')
     config.validate()
-    source, output = Path(source).resolve(), Path(output).resolve()
-    if not source.exists():
-        raise AnnotationError('Input does not exist: ' + str(source))
-    source_root = source if source.is_dir() else source.parent
-    if output.exists() or output.is_relative_to(source_root) or source_root.is_relative_to(output):
-        raise AnnotationError('Output must be a new directory outside the input tree')
+    source = normalize_source(source)
+    output = validate_output(source, output)
     kind = _kind(source, config.input_format)
     def event(stage, percent):
         if cancelled and cancelled():
@@ -128,11 +159,16 @@ def run_pipeline(source, output, config=None, *, progress=None, cancelled=None):
                 raise AnnotationError('Native input has unreadable or missing layers; see input files or set strict_native=false')
             working = stage/'native'
             sources = dict(native['source_sha256'])
-            if source.is_file():
-                sources[str(source)] = sha256(source)
+            for path in source_paths(source):
+                if path.is_file():
+                    sources[str(path)] = sha256(path)
         else:
-            working = source
-            sources = {str(p): sha256(p) for p in source.iterdir() if p.suffix.lower() in ('.shp','.shx','.dbf','.prj','.cpg')}
+            if isinstance(source, tuple) or source.is_file():
+                working = stage/'input'
+                sources = _selected_shapefiles(source, working)
+            else:
+                working = source
+                sources = {str(p): sha256(p) for p in source.iterdir() if p.suffix.lower() in ('.shp','.shx','.dbf','.prj','.cpg')}
         event('audit', 25)
         audit = audit_shapefiles(working, stage/'inventory')
         event('annotations', 40)
@@ -154,7 +190,7 @@ def run_pipeline(source, output, config=None, *, progress=None, cancelled=None):
             export = json.loads((stage/'map/export.json').read_text(encoding='utf-8'))
             if any(sha256(stage/'map'/p) != h for p, h in export['product_sha256'].items()):
                 raise AnnotationError('Rendered products failed verification')
-        result = {'format_version': 2, 'kind': 'pipeline', 'status': 'PASS', 'source': str(source),
+        result = {'format_version': 2, 'kind': 'pipeline', 'status': 'PASS', 'source': source_description(source),
                   'input_format': kind, 'output': str(output), 'source_sha256': sources,
                   'native_summary': native['summary'] if native else None,
                   'audit': {k: v for k, v in audit.items() if k != 'layers'},

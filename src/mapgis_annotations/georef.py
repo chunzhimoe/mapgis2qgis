@@ -35,6 +35,7 @@ from .mapgis_native import (EXT_KIND, KIND_SUFFIX, native_files, read_native_lay
                             scale_features, write_shapefile)
 from .shapefiles import publish, sha256
 from .native_crs import decode_dms, header_crs
+from .input_selection import normalize_source, source_description, validate_output
 
 __all__ = ['export_native', 'gk_epsg']
 
@@ -344,7 +345,7 @@ def _names(paths):
 
 
 def export_native(source, output, epsg=None, factor=None, style=True, georeference=True):
-    """Convert a native MapGIS map (folder, .mpj or single .wt/.wl/.wp) into a new flat
+    """Convert a native MapGIS map (folder, .mpj, work file or file list) into a new flat
     directory of Shapefiles that ``run_workflow`` can consume directly.
 
     georeference=True (needs pyproj) decides unit factor and EPSG per layer as described in
@@ -358,12 +359,9 @@ def export_native(source, output, epsg=None, factor=None, style=True, georeferen
         raise AnnotationError('factor must be finite and positive')
     if georeference or epsg:
         _pyproj()
+    source = normalize_source(source)
     name, paths, missing = native_files(source)
-    source_root = Path(source).resolve()
-    source_root = source_root if source_root.is_dir() else source_root.parent
-    output = Path(output).resolve()
-    if output.exists() or output.is_relative_to(source_root) or source_root.is_relative_to(output):
-        raise AnnotationError('Output must be a new directory outside the input tree')
+    output = validate_output(source, output)
     if not paths:
         raise AnnotationError('No MapGIS .wt/.wl/.wp files found in ' + str(source))
     before = {str(p): sha256(p) for p in paths}
@@ -385,7 +383,7 @@ def export_native(source, output, epsg=None, factor=None, style=True, georeferen
         layers[p] = {'layer': layer, 'pts': pts, 'bbox': bbox, 'key': key, 'candidate': candidate}
     valid, map_key = decide_frames(layers, epsg, factor) if georeference or epsg else ({}, None)
     names = _names(paths)
-    manifest = {'source': str(Path(source).resolve()), 'map': name, 'georeference': bool(georeference or epsg),
+    manifest = {'source': source_description(source), 'map': name, 'georeference': bool(georeference or epsg),
                 'map_frame': dict(valid[map_key], key=list(map_key)) if map_key else None,
                 'frames': {str(k): v for k, v in valid.items()}, 'missing_project_layers': missing,
                 'unreadable': bad, 'layers': {}}

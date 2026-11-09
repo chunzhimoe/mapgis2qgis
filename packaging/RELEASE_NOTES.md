@@ -1,6 +1,10 @@
-## MapGIS2QGIS 0.4.4
+## MapGIS2QGIS 0.4.5
 
 全内置桌面版：Python、Tk GUI、MapGIS 原生转换库、QGIS、PyProj 和 Shapely 均包含在安装包内。
+
+GUI「多选文件/工程」支持 Ctrl/Command 多选或 Shift 连选 WT/WL/WP、MPJ 或 SHP。所选文件作为同一组图层处理，生成一套标准注记、PDF和QGIS工程；不会自动扫描并导入同目录未选择的图层。MPJ引用层与直接选择文件去重，SHP自动带上同名配套文件；原生与SHP分开选择，同名SHP需重命名或分组以免混淆。输入数量/名称与完整运行路径可核对，取消对话框保留选择。
+
+Python API接受文件列表，CLI增加 `--source-list` JSON路径数组；旧文件夹和单文件调用保持可用。双平台安装验收新增真实GUI多选原生及SHP转PDF、源哈希、未选层排除和预览检查，报告随Release提供。
 
 修复 Windows 继承其他 Python/QGIS/Qt/Conda 环境后 `qgis._core` DLL 导入失败的问题。开始菜单和 CMD 启动器采用隔离 Python；CLI 在 GIS 加载前切换到安装包自己的路径环境，GUI 转换子进程同样隔离。只对包含 Conda QGIS 的 Windows 安装环境启用，不修改系统设置。-I 启动下日志明确使用 UTF-8，中文异常仍可读。
 

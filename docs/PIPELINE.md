@@ -9,6 +9,10 @@ mapgis-annotations verify 新输出目录
 
 Python：`run_pipeline(source, output, PipelineConfig(...))`，或传入同结构字典。配置字段为`input_format`（auto/native/shp）、`native`、`annotations`、`render`、`strict_native`。既有注记配置可直接作为配置文件使用，等同于放在annotations中。渲染默认关闭；`--render`开启，需PyQGIS。原生读取和空间功能需安装`.[spatial]`。
 
+0.4.5 增加显式多文件选择，Python 可传 `run_pipeline(['labels.WT', 'faults.WL'], output, config)`，`export_native` 同样接受文件列表。CLI 使用 UTF-8 JSON 路径数组：`mapgis-annotations pipeline 新输出目录 --source-list selected_files.json`，不能同时填写单个 source。列表只允许文件，原生与SHP不能混选，重复路径去重；MPJ展开其引用层，文件夹与单文件旧调用不变。选择同属一张图的图层会生成一套成果，不是逐文件独立批处理。
+
+多选时根清单和原生清单的 `source` 为绝对路径数组，原有单路径调用仍是字符串；`source_sha256` 保持路径到哈希的字典。SHP选择自动携带配套文件，并在 `input/` 保留选中输入的原样副本，确保标准注记清单在暂存目录清理后仍可核验。所有原始输入哈希继续检查；配置中的图层名仍按最终清单命名填写。
+
 输出：`native/`（原生输入时）、`annotations/`、`inventory.json/.csv`、可选`map/`、根`manifest.json`。整个目录是一次原子发布；任一步失败不发布新目录，不覆盖输入。根manifest记录全部产物哈希与原始输入哈希。发布前重定位子步骤的暂存路径并重算内层哈希，最终目录可直接verify，子目录annotations也可verify。
 
 `progress`回调接收`stage/percent`；`cancelled`回调在阶段边界检查。CLI的`--events`写JSONL，`--cancel-file`供GUI协调停止。取消不会发布输出，长渲染会在当前阶段结束后停止。
