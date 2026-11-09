@@ -1,0 +1,54 @@
+name: Diagnose published Windows runtime without Conda activation
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Published installer release to reproduce
+        required: true
+        default: desktop-42591650219-1
+
+permissions:
+  contents: read
+
+jobs:
+  windows-runtime:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Download existing published installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          New-Item -ItemType Directory -Force out | Out-Null
+          gh release download "$env:RELEASE_TAG" --pattern '*-Windows-x64.exe' --dir out
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install and probe with system PATH and no builder environment
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'MapGIS2QGIS-clean'
+          $installer = (Get-ChildItem out/*-Windows-x64.exe | Select-Object -First 1).FullName
+          foreach ($name in @('PYTHONHOME','PYTHONPATH','QGIS_PREFIX_PATH','QT_PLUGIN_PATH','QT_QPA_PLATFORM_PLUGIN_PATH','GDAL_DATA','PROJ_DATA','PROJ_LIB','CONDA_PREFIX')) {
+            Remove-Item "Env:$name" -ErrorAction SilentlyContinue
+          }
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot;$env:SystemRoot\System32\Wbem;$env:SystemRoot\System32\WindowsPowerShell\v1.0"
+          $env:PYTHONIOENCODING = 'utf-8'
+          $process = Start-Process -FilePath $installer -ArgumentList '/InstallationType=JustMe','/RegisterPython=0','/AddToPath=0','/S',("/D="+$prefix) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          & "$prefix/python.exe" tools/qgis_diagnose.py --output out/qgis-diagnostic-windows.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/installed_runtime_smoke.py out/installed-runtime-clean.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/gui_smoke.py out/installed-gui-clean.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Keep exact import and rendering reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: windows-runtime-diagnostics
+          path: out/*.json
+          retention-days: 14

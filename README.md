@@ -8,6 +8,7 @@ mapgis-annotations pipeline 原生图件目录 新结果目录 --config examples
 ```
 
 完整流程见 [docs/PIPELINE.md](docs/PIPELINE.md)，GUI 见 [docs/GUI.md](docs/GUI.md)。
+Windows 提示 PyQGIS 导入失败时，先用[独立诊断脚本](docs/QGIS_DIAGNOSTICS.md)获取真实 ImportError，不需要另装 QGIS 或修改处理 JSON。
 七套可直接选择的 JSON 见 [配置文件与使用说明](examples/profiles/README.md)：通用完整 PDF、严格完整 PDF、快速预览、仅数据、已有 SHP 制图、五龙沟连排与局部图，以及 0.4.3 自动字号全图。Release 同时提供 `MapGIS2QGIS-profiles.zip`；已有 0.4.0 安装包可使用 01–06，07 需 0.4.3。PDF 输出位置为你选择的输出目录下 `map/map.pdf`。
 0.4.2 起内置开源 Noto 中文字体，渲染时核查中文/希腊字形；Release 提供两个平台的 PNG/PDF 字体样张与核验报告。成果内的 `map/fonts/` 包含字体和许可证，便于在外部 QGIS 使用。
 0.4.3 GUI 增加自动字号开关，按每层注记间距估算并缩小字号，保留原坐标和手动上限。JSON 使用 `render.auto_font_size=true`；独立导图命令使用 `export --auto-font-size`。
