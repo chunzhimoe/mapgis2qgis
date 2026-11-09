@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import plistlib
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -18,6 +19,21 @@ def load(name, path):
 
 
 class DesktopBuild(unittest.TestCase):
+    def test_dmg_retries_only_transient_resource_busy(self):
+        builder = load('desktop_build',ROOT/'tools/build_desktop.py')
+        command = ['hdiutil','create','example.dmg']
+        busy = subprocess.CompletedProcess(command, 1, '', 'hdiutil: create failed - Resource busy')
+        ok = subprocess.CompletedProcess(command, 0, 'created\n', '')
+        with patch.object(builder.subprocess,'run',side_effect=[busy,ok]) as run, patch.object(builder.time,'sleep') as sleep:
+            builder.create_disk_image(command)
+        self.assertEqual(run.call_count, 2)
+        sleep.assert_called_once_with(3)
+        denied = subprocess.CompletedProcess(command, 1, '', 'Permission denied')
+        with patch.object(builder.subprocess,'run',return_value=denied) as run:
+            with self.assertRaises(subprocess.CalledProcessError):
+                builder.create_disk_image(command)
+        self.assertEqual(run.call_count, 1)
+
     def test_offline_spec_contains_qgis_and_required_install_hook(self):
         builder = load('desktop_build',ROOT/'tools/build_desktop.py')
         with tempfile.TemporaryDirectory() as temporary:

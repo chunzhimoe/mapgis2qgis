@@ -49,7 +49,7 @@ def main():
     assert b'/FontFile' in pdf, 'The PDF must embed a font program'
     report.update(status='PASS', glyph_indexes=glyphs, pdf_font_embedded=True)
     (output/'font-validation.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
-    print(json.dumps(report, ensure_ascii=False))
+    print(json.dumps(report, ensure_ascii=True))
     del font
     gc.collect()
     app.exitQgis()

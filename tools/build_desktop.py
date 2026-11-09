@@ -8,6 +8,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import time
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -103,6 +104,20 @@ def main():
     (args.output/'SHA256SUMS.txt').write_text(report['sha256']+'  '+artifact.name+'\n', encoding='utf-8')
 
 
+def create_disk_image(command, attempts=3):
+    for attempt in range(attempts):
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.stdout:
+            print(result.stdout, end='')
+        if result.stderr:
+            print(result.stderr, end='', file=sys.stderr)
+        if result.returncode == 0:
+            return
+        if 'Resource busy' not in result.stderr or attempt == attempts-1:
+            raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
+        time.sleep(3)
+
+
 def make_dmg(args, package, version):
     image_source = args.context/'dmg'
     image_source.mkdir(exist_ok=True)
@@ -116,7 +131,7 @@ def make_dmg(args, package, version):
         '本安装包内含 Python、GUI、转换库和 QGIS 渲染环境；安装和使用无需再下载依赖。\n'
         '未使用 Apple Developer 证书签名或公证。\n第三方组件许可证、版本与构建记录随安装包提供。\n', encoding='utf-8')
     dmg = args.output/('MapGIS2QGIS-'+version+'-macOS-arm64.dmg')
-    subprocess.run(['hdiutil','create','-volname','MapGIS2QGIS','-srcfolder',str(image_source),'-ov','-format','UDZO',str(dmg)], check=True)
+    create_disk_image(['hdiutil','create','-volname','MapGIS2QGIS','-srcfolder',str(image_source),'-ov','-format','UDZO',str(dmg)])
     subprocess.run(['hdiutil','verify',str(dmg)], check=True)
     return dmg
 
