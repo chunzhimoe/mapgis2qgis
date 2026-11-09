@@ -1,9 +1,11 @@
 import importlib.util
 import json
+import os
 from pathlib import Path
 import plistlib
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -56,3 +58,19 @@ class DesktopBuild(unittest.TestCase):
             self.assertIn('"$MAPGIS_PREFIX/bin/python" -m mapgis_annotations gui',script)
             self.assertNotIn(temporary,script)
             self.assertTrue((prefix.parent/'MapGIS2QGIS-0.4.0.app').is_symlink())
+
+    def test_windows_shortcut_with_constructor_restricted_path(self):
+        installer = load('desktop_install',ROOT/'packaging/install_desktop.py')
+        with tempfile.TemporaryDirectory(prefix='windows install ') as temporary:
+            root = Path(temporary).resolve()
+            powershell = root/'Windows/System32/WindowsPowerShell/v1.0/powershell.exe'
+            powershell.parent.mkdir(parents=True)
+            powershell.touch()
+            prefix = root/'MapGIS2QGIS'
+            prefix.mkdir()
+            with patch.dict(os.environ, {'SystemRoot':str(root/'Windows'),'PATH':str(root/'Windows/System32')}, clear=True):
+                with patch.object(installer.subprocess,'run') as run:
+                    installer.create_windows_launcher(prefix)
+            self.assertEqual(run.call_args.args[0][0], str(powershell))
+            self.assertEqual(run.call_args.kwargs['env']['MAPGIS_INSTALL_PREFIX'], str(prefix))
+            self.assertTrue(run.call_args.kwargs['check'])

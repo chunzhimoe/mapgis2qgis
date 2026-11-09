@@ -98,7 +98,8 @@ jobs:
             $log = Join-Path $prefix $name
             if (Test-Path $log) {
               Copy-Item $log (Join-Path 'dist/installers' ($name+'.txt'))
-              Get-Content $log -Tail 160
+              if ($name -eq 'install.log') { Get-Content $log -Encoding Unicode -Tail 160 }
+              else { Get-Content $log -Tail 160 }
             }
           }
           Get-Content dist/installers/windows-install-stdout.txt -Tail 160

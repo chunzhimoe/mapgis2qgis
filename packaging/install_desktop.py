@@ -53,6 +53,14 @@ def create_windows_launcher(prefix, *, shortcuts=True):
     launcher = prefix/'MapGIS2QGIS.cmd'
     launcher.write_text('@echo off\nstart "" "%~dp0pythonw.exe" -m mapgis_annotations gui\n', encoding='utf-8')
     if shortcuts:
+        # Constructor deliberately strips PATH to the prefix and core Windows
+        # directories. WindowsPowerShell is a subdirectory of System32.
+        system_root = os.environ.get('SystemRoot') or os.environ.get('windir')
+        powershell = Path(system_root)/'System32/WindowsPowerShell/v1.0/powershell.exe' if system_root else None
+        if powershell is None or not powershell.is_file():
+            powershell = shutil.which('powershell.exe')
+        if not powershell:
+            raise RuntimeError('Windows PowerShell was not found; cannot create the Start menu shortcut')
         # Paths are supplied through the environment, never interpolated into code.
         script = ("$w=New-Object -ComObject WScript.Shell;"
                   "$p=Join-Path ([Environment]::GetFolderPath('Programs')) 'MapGIS2QGIS.lnk';"
@@ -60,7 +68,7 @@ def create_windows_launcher(prefix, *, shortcuts=True):
                   "$s.TargetPath=Join-Path $env:MAPGIS_INSTALL_PREFIX 'pythonw.exe';"
                   "$s.Arguments='-m mapgis_annotations gui';"
                   "$s.WorkingDirectory=$env:MAPGIS_INSTALL_PREFIX;$s.Save()")
-        subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],
+        subprocess.run([str(powershell),'-NoProfile','-NonInteractive','-Command',script],
                        env=dict(os.environ, MAPGIS_INSTALL_PREFIX=str(prefix)), check=True)
     return launcher
 
