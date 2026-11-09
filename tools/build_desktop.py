@@ -1,4 +1,4 @@
-"""Build the self-contained macOS arm64 PKG and wrap it in a DMG."""
+"""Build full Windows x64 EXE and macOS arm64 PKG/DMG offline installers."""
 import argparse
 import configparser
 import hashlib
@@ -13,11 +13,13 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def make_context(wheel, directory, version):
+def make_context(wheel, directory, version, target='osx-arm64'):
+    if target not in ('osx-arm64','win-64'):
+        raise ValueError('Only osx-arm64 and win-64 are supported')
     directory = Path(directory).resolve()
     directory.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(wheel, directory/Path(wheel).name)
-    for name in ('post_install.sh','install_desktop.py'):
+    for name in ('post_install.sh','post_install.bat','install_desktop.py'):
         shutil.copyfile(ROOT/'packaging'/name, directory/name)
     license_text = (ROOT/'LICENSE').read_text()+'\n\n'+(ROOT/'THIRD_PARTY_NOTICES.md').read_text()+'\n\n'+(ROOT/'licenses/Apache-2.0.txt').read_text()
     (directory/'LICENSE.txt').write_text(license_text, encoding='utf-8')
@@ -35,6 +37,13 @@ def make_context(wheel, directory, version):
             'build_outputs':['licenses','info.json','lockfile','pkgs_list'],
             'extra_files':[{Path(wheel).name:'app_payload/'+Path(wheel).name},
                            {'install_desktop.py':'app_payload/install_desktop.py'}, {'LICENSE.txt':'app_payload/LICENSE.txt'}]}
+    if target == 'win-64':
+        for key in ('pkg_name','default_location_pkg','welcome_image','welcome_text','readme_text'):
+            spec.pop(key, None)
+        spec.update(installer_type='exe', installer_filename='MapGIS2QGIS-'+version+'-Windows-x64.exe',
+                    post_install='post_install.bat', register_python=False, check_path_spaces=False,
+                    default_prefix='%LOCALAPPDATA%\\MapGIS2QGIS-'+version,
+                    conclusion_text='MapGIS2QGIS installed\nOpen MapGIS2QGIS from the Start menu.')
     (directory/'construct.yaml').write_text(json.dumps(spec, indent=2), encoding='utf-8')
     return spec
 
@@ -53,25 +62,47 @@ def source_archive(destination):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--context', type=Path, default=ROOT/'build/desktop-arm64')
+    parser.add_argument('--context', type=Path, default=ROOT/'build/desktop')
     parser.add_argument('--output', type=Path, default=ROOT/'dist/installers')
     parser.add_argument('--prepare-only', action='store_true')
     args = parser.parse_args()
-    if sys.platform != 'darwin' or platform.machine() != 'arm64':
-        raise RuntimeError('The full installer is built on macOS Apple Silicon only')
+    if sys.platform == 'darwin' and platform.machine() == 'arm64':
+        target = 'osx-arm64'
+    elif sys.platform == 'win32' and platform.machine().lower() in ('amd64','x86_64'):
+        target = 'win-64'
+    else:
+        raise RuntimeError('Build on macOS Apple Silicon or Windows x64')
     config = configparser.ConfigParser()
     config.read(ROOT/'setup.cfg')
     version = config['metadata']['version']
     wheel = ROOT/'dist'/('mapgis_annotations-'+version+'-py3-none-any.whl')
     subprocess.run([sys.executable,'-m','pip','wheel','--no-deps','--no-build-isolation',str(ROOT),'-w',str(ROOT/'dist')], check=True)
-    make_context(wheel, args.context, version)
+    spec = make_context(wheel, args.context, version, target)
     if args.prepare_only:
         return
     args.output.mkdir(parents=True, exist_ok=True)
     subprocess.run(['constructor',str(args.context),'--output-dir',str(args.output)], check=True)
-    package = args.output/('MapGIS2QGIS-'+version+'-macOS-arm64.pkg')
+    package = args.output/spec['installer_filename']
     if not package.is_file():
         raise RuntimeError('Constructor did not produce the installer')
+    if target == 'win-64':
+        source_archive(args.output/'MapGIS2QGIS-source.zip')
+        artifact = package
+    else:
+        artifact = make_dmg(args, package, version)
+    report = {'version':version,'platform':target,'architecture':'arm64' if target=='osx-arm64' else 'x64',
+              'includes':['Python','Tk','MapGIS library','QGIS','PyProj','Shapely'],
+              'signed':False,'notarized':False,'bytes':artifact.stat().st_size}
+    digest = hashlib.sha256()
+    with artifact.open('rb') as handle:
+        for block in iter(lambda:handle.read(1024*1024), b''):
+            digest.update(block)
+    report['sha256'] = digest.hexdigest()
+    (args.output/'build.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    (args.output/'SHA256SUMS.txt').write_text(report['sha256']+'  '+artifact.name+'\n', encoding='utf-8')
+
+
+def make_dmg(args, package, version):
     image_source = args.context/'dmg'
     image_source.mkdir(exist_ok=True)
     shutil.copyfile(package, image_source/package.name)
@@ -86,10 +117,7 @@ def main():
     dmg = args.output/('MapGIS2QGIS-'+version+'-macOS-arm64.dmg')
     subprocess.run(['hdiutil','create','-volname','MapGIS2QGIS','-srcfolder',str(image_source),'-ov','-format','UDZO',str(dmg)], check=True)
     subprocess.run(['hdiutil','verify',str(dmg)], check=True)
-    report = {'version':version,'architecture':'arm64','includes':['Python','Tk','MapGIS library','QGIS','PyProj','Shapely'],
-              'signed':False,'notarized':False,'sha256':hashlib.sha256(dmg.read_bytes()).hexdigest(),'bytes':dmg.stat().st_size}
-    (args.output/'build.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
-    (args.output/'SHA256SUMS.txt').write_text(report['sha256']+'  '+dmg.name+'\n', encoding='utf-8')
+    return dmg
 
 
 if __name__ == '__main__':

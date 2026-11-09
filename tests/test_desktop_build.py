@@ -30,6 +30,20 @@ class DesktopBuild(unittest.TestCase):
             self.assertTrue((root/'context'/spec['post_install']).exists())
             self.assertEqual(json.loads((root/'context/construct.yaml').read_text())['version'],'0.4.0')
 
+    def test_windows_installer_and_relative_launcher(self):
+        builder = load('desktop_build',ROOT/'tools/build_desktop.py')
+        installer = load('desktop_install',ROOT/'packaging/install_desktop.py')
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            wheel = root/'app.whl'
+            wheel.write_bytes(b'test wheel placeholder')
+            spec = builder.make_context(wheel,root/'context','0.4.0','win-64')
+            self.assertEqual(spec['installer_type'],'exe')
+            self.assertEqual(spec['post_install'],'post_install.bat')
+            self.assertNotIn('pkg_name',spec)
+            launcher = installer.create_windows_launcher(root,shortcuts=False)
+            self.assertIn('"%~dp0pythonw.exe"',launcher.read_text())
+
     def test_launcher_uses_its_own_relocated_runtime(self):
         installer = load('desktop_install',ROOT/'packaging/install_desktop.py')
         with tempfile.TemporaryDirectory(prefix='path with spaces ') as temporary:

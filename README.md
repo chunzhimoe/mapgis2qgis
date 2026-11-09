@@ -8,7 +8,7 @@ mapgis-annotations pipeline 原生图件目录 新结果目录 --config examples
 ```
 
 完整流程见 [docs/PIPELINE.md](docs/PIPELINE.md)，GUI 见 [docs/GUI.md](docs/GUI.md)。
-离线桌面安装包仅面向 **macOS Apple Silicon（arm64）**，包含 Python、Tk、转换库、QGIS、PyProj 和 Shapely，无需另装运行环境。GitHub Actions 在推送 main 或手动触发时构建 `.dmg`；DMG 内含 `.pkg` 安装器及许可证/构建记录，安装后从 Applications 打开版本化应用。构建成功后安装包保存到草稿 Release，安装后实际运行转换、渲染与 GUI 测试。当前开发包未签名或公证。构建说明见 [docs/DESKTOP_BUILD.md](docs/DESKTOP_BUILD.md)。
+离线桌面安装包面向 **macOS Apple Silicon（arm64）与 Windows x64**，包含 Python、Tk、转换库、QGIS、PyProj 和 Shapely，无需另装运行环境。GitHub Actions 在推送 main 或手动触发时构建 `.dmg` 和安装 `.exe`；DMG 内含 `.pkg` 安装器及许可证/构建记录，Mac 从 Applications 打开版本化应用，Windows 从开始菜单打开。构建后实际运行安装环境的转换、渲染与 GUI 测试，通过后安装包保存到同一草稿 Release。当前开发包未签名或公证。构建说明见 [docs/DESKTOP_BUILD.md](docs/DESKTOP_BUILD.md)。
 
 通用 MapGIS 转换与注记校正库，Python API 与命令行工具，分两段：
 

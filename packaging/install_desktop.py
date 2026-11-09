@@ -1,5 +1,6 @@
 """Install the bundled pure-Python wheel offline and create the macOS app."""
 import json
+import os
 from pathlib import Path
 import plistlib
 import shutil
@@ -47,6 +48,23 @@ def runtime_inventory(prefix):
     return records
 
 
+def create_windows_launcher(prefix, *, shortcuts=True):
+    prefix = Path(prefix).resolve()
+    launcher = prefix/'MapGIS2QGIS.cmd'
+    launcher.write_text('@echo off\nstart "" "%~dp0pythonw.exe" -m mapgis_annotations gui\n', encoding='utf-8')
+    if shortcuts:
+        # Paths are supplied through the environment, never interpolated into code.
+        script = ("$w=New-Object -ComObject WScript.Shell;"
+                  "$p=Join-Path ([Environment]::GetFolderPath('Programs')) 'MapGIS2QGIS.lnk';"
+                  "$s=$w.CreateShortcut($p);"
+                  "$s.TargetPath=Join-Path $env:MAPGIS_INSTALL_PREFIX 'pythonw.exe';"
+                  "$s.Arguments='-m mapgis_annotations gui';"
+                  "$s.WorkingDirectory=$env:MAPGIS_INSTALL_PREFIX;$s.Save()")
+        subprocess.run(['powershell.exe','-NoProfile','-NonInteractive','-Command',script],
+                       env=dict(os.environ, MAPGIS_INSTALL_PREFIX=str(prefix)), check=True)
+    return launcher
+
+
 def main():
     prefix = Path(sys.prefix)
     payload = prefix/'app_payload'
@@ -55,7 +73,10 @@ def main():
         raise RuntimeError('Expected exactly one bundled application wheel')
     subprocess.run([sys.executable,'-m','pip','install','--no-index','--no-deps','--no-compile',str(wheels[0])], check=True)
     import mapgis_annotations
-    create_app(prefix, mapgis_annotations.__version__)
+    if sys.platform == 'darwin':
+        create_app(prefix, mapgis_annotations.__version__)
+    elif sys.platform == 'win32':
+        create_windows_launcher(prefix)
     packages = runtime_inventory(prefix)
     if not any(record['name']=='qgis' for record in packages):
         raise RuntimeError('QGIS is missing from the offline runtime')

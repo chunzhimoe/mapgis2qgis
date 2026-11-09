@@ -1,0 +1,125 @@
+name: Build offline desktop installers
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.11'
+      - run: python -m pip install '.[spatial]'
+      - run: python -m unittest discover -s tests -v
+      - name: Ensure local archives are absent
+        run: test -z "$(git ls-files changes)"
+
+  prepare-release:
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Prepare draft delivery
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: desktop-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          gh release create "$RELEASE_TAG" --draft --target "$GITHUB_SHA" --title 'MapGIS2QGIS offline desktop build' --notes 'Development build containing Python, Tk, the conversion library and QGIS. Installer assets are attached only after installation and GUI tests pass. Unsigned build.'
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+
+  desktop:
+    needs: [tests, prepare-release]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: osx-arm64
+            os: macos-15
+          - platform: win-64
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
+        with:
+          miniforge-version: latest
+          activate-environment: builder
+          python-version: '3.11'
+          channels: conda-forge
+          channel-priority: strict
+      - name: Install build tools
+        run: conda install -y -c conda-forge constructor conda-standalone setuptools wheel
+      - name: Install Windows installer compiler
+        if: runner.os == 'Windows'
+        run: conda install -y -c conda-forge nsis
+      - name: Build full offline installer
+        run: python tools/build_desktop.py
+      - name: Install macOS PKG and test its runtime
+        if: runner.os == 'macOS'
+        run: |
+          version=$(sed -n 's/^version = //p' setup.cfg)
+          packages=(dist/installers/*.pkg)
+          sudo installer -pkg "${packages[0]}" -target /
+          "/Applications/MapGIS2QGIS-$version/bin/python" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
+          "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/installed-gui.json
+      - name: Install Windows EXE and test its runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'MapGIS2QGIS-installed'
+          $installer = (Get-ChildItem dist/installers/*.exe | Select-Object -First 1).FullName
+          $process = Start-Process -FilePath $installer -ArgumentList '/InstallationType=JustMe','/RegisterPython=0','/AddToPath=0','/S',("/D="+$prefix) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          & "$prefix/python.exe" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/gui_smoke.py dist/installers/installed-gui.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload verification reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.platform }}-verification
+          path: |
+            dist/installers/*.json
+            dist/installers/*.txt
+          retention-days: 7
+      - name: Attach verified installer to draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+          TARGET_PLATFORM: ${{ matrix.platform }}
+        run: |
+          mkdir -p dist/release
+          if [[ "$TARGET_PLATFORM" == 'win-64' ]]; then
+            cp dist/installers/*.exe dist/release/
+          else
+            cp dist/installers/*.dmg dist/release/
+          fi
+          cp dist/installers/build.json "dist/release/build-$TARGET_PLATFORM.json"
+          cp dist/installers/installed-runtime.json "dist/release/runtime-$TARGET_PLATFORM.json"
+          cp dist/installers/installed-gui.json "dist/release/gui-$TARGET_PLATFORM.json"
+          cp dist/installers/SHA256SUMS.txt "dist/release/SHA256SUMS-$TARGET_PLATFORM.txt"
+          gh release upload "$RELEASE_TAG" dist/release/* --clobber
+          gh release view "$RELEASE_TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
