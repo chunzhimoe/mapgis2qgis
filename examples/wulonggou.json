@@ -1,0 +1,16 @@
+{
+  "conversion": {"note_field": "注记"},
+  "pairing": {
+    "legend_layer": "地质图例_点",
+    "target_layers": ["5万地质矿产图_点"],
+    "min_dx": 20,
+    "max_dx": 500,
+    "max_dy": 35,
+    "require_legend": true
+  },
+  "crosswalks": [{
+    "points": "5万地质矿产图_点",
+    "polygons": "5万地质矿产图_区",
+    "invalid_policy": "exclude"
+  }]
+}

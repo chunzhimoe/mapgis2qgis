@@ -1,0 +1,14 @@
+include README.md LICENSE
+include THIRD_PARTY_NOTICES.md
+recursive-include licenses *.txt
+prune changes
+recursive-include examples *.json *.py
+recursive-include tests *.py
+recursive-include docs *.md
+recursive-include src/mapgis_annotations/profiles *.json
+recursive-include tools *.py
+recursive-include packaging *.py *.sh *.txt
+recursive-include .github *.yml
+prune out
+prune build
+global-exclude __pycache__ *.py[cod]

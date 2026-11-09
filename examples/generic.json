@@ -1,0 +1,18 @@
+{
+  "annotation_layers": ["map_labels", "legend_labels"],
+  "conversion": {
+    "note_fields": {"map_labels": "TEXT", "legend_labels": "CAPTION"},
+    "encoding": "utf-8"
+  },
+  "pairing": {
+    "legend_layer": "legend_labels",
+    "target_layers": ["map_labels"],
+    "min_dx": 1,
+    "max_dx": 30,
+    "max_dy": 3,
+    "rock_pattern": "[A-Z]+",
+    "age_pattern": "Unit#-[0-9]+",
+    "require_legend": true
+  },
+  "crosswalks": [{"points": "map_labels", "polygons": "geology", "invalid_policy": "exclude"}]
+}
