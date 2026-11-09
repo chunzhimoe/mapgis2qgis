@@ -12,7 +12,16 @@ from .workflow import WorkflowConfig, run_workflow, verify_dataset
 
 
 def main(argv=None):
-    from .runtime import configure_runtime
+    from .runtime import configure_runtime, is_windows_bundle, relaunch_bundled_cli
+    result = relaunch_bundled_cli(argv)
+    if result is not None:
+        return result
+    # -I intentionally ignores PYTHONIOENCODING. Worker logs remain UTF-8,
+    # including Chinese errors when Windows' console encoding is cp1252.
+    if is_windows_bundle():
+        for stream in (sys.stdout, sys.stderr):
+            if stream is not None and hasattr(stream, 'reconfigure'):
+                stream.reconfigure(encoding='utf-8')
     configure_runtime()
     parser = argparse.ArgumentParser(prog='mapgis-annotations')
     from . import __version__

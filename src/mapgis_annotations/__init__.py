@@ -8,7 +8,7 @@ from .mapgis_native import NativeLayer, read_native_layer, read_mpj_paths, write
 from .georef import export_native
 from .pipeline import PipelineConfig, PipelineCancelled, run_pipeline
 
-__version__ = '0.4.3'
+__version__ = '0.4.4'
 __all__ = ['AnnotationError', 'MissingDependencyError', 'NativeFormatError', 'ParsedNote', 'parse_note',
            'ConversionConfig', 'convert_layer', 'inspect_dataset', 'WorkflowConfig',
            'run_workflow', 'verify_dataset', 'AnnotationPoint', 'PairingConfig',

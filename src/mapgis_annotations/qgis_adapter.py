@@ -45,7 +45,9 @@ def export_project(dataset, output, *, width_mm=1000, dpi=300, font_size=9,
     try:
         from qgis.core import QgsApplication
     except ImportError as exc:
-        raise MissingDependencyError('QGIS export requires PyQGIS; use QGIS Python, not pip install qgis') from exc
+        raise MissingDependencyError('PyQGIS import failed: %s: %s; Python: %s. '
+                                     'Use the bundled launcher or a configured QGIS Python environment.'
+                                     % (type(exc).__name__, exc, sys.executable)) from exc
     app = QgsApplication.instance()
     owned = app is None
     if owned:

@@ -13,6 +13,7 @@ import time
 
 from .errors import AnnotationError
 from .pipeline import PipelineConfig
+from .runtime import desktop_environment, is_windows_bundle
 
 
 @dataclass
@@ -81,7 +82,9 @@ class JobRunner:
                 config.write_text(json.dumps(spec.config, ensure_ascii=False), encoding='utf-8')
                 command = [sys.executable, '-m', 'mapgis_annotations', 'pipeline', str(spec.source), str(spec.output),
                            '--config', str(config), '--events', str(events), '--cancel-file', str(cancel)]
-                env = dict(os.environ, PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1')
+                if is_windows_bundle():
+                    command.insert(1, '-I')
+                env = desktop_environment(dict(os.environ, PYTHONIOENCODING='utf-8', PYTHONUNBUFFERED='1'))
                 flags = subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
                 position = 0
                 with log.open('wb') as handle:

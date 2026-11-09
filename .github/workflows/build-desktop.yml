@@ -46,7 +46,7 @@ jobs:
           RELEASE_TAG: desktop-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           gh release create "$RELEASE_TAG" --draft --target "$GITHUB_SHA" --title 'MapGIS2QGIS offline desktop build' --notes 'Development build containing Python, Tk, the conversion library and QGIS. Installer assets are attached only after installation and GUI tests pass. Unsigned build.'
-          gh release upload "$RELEASE_TAG" dist/MapGIS2QGIS-profiles.zip dist/MapGIS2QGIS-fonts.zip examples/profiles/*.json
+          gh release upload "$RELEASE_TAG" dist/MapGIS2QGIS-profiles.zip dist/MapGIS2QGIS-fonts.zip examples/profiles/*.json tools/qgis_diagnose.py
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
   desktop:
@@ -154,6 +154,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$prefix/python.exe" tests/auto_font_smoke.py dist/installers/auto-font.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test Windows with conflicting external Python and GIS paths
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $prefix = Join-Path $env:RUNNER_TEMP 'MapGIS2QGIS-installed'
+          & "$prefix/python.exe" tests/windows_environment_smoke.py dist/installers/windows-environment.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload verification reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -185,6 +192,9 @@ jobs:
           cp dist/installers/font-check/font-probe.png "dist/release/font-probe-$TARGET_PLATFORM.png"
           cp dist/installers/font-check/font-probe.pdf "dist/release/font-probe-$TARGET_PLATFORM.pdf"
           cp dist/installers/SHA256SUMS.txt "dist/release/SHA256SUMS-$TARGET_PLATFORM.txt"
+          if [[ "$TARGET_PLATFORM" == 'win-64' ]]; then
+            cp dist/installers/windows-environment.json dist/release/windows-environment.json
+          fi
           gh release upload "$RELEASE_TAG" dist/release/* --clobber
           gh release view "$RELEASE_TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
 

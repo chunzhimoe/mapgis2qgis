@@ -61,6 +61,7 @@ class DesktopBuild(unittest.TestCase):
             self.assertNotIn('pkg_name',spec)
             launcher = installer.create_windows_launcher(root,shortcuts=False)
             self.assertIn('"%~dp0pythonw.exe"',launcher.read_text())
+            self.assertIn('-I -m mapgis_annotations gui',launcher.read_text())
 
     def test_launcher_uses_its_own_relocated_runtime(self):
         installer = load('desktop_install',ROOT/'packaging/install_desktop.py')
@@ -90,3 +91,4 @@ class DesktopBuild(unittest.TestCase):
             self.assertEqual(run.call_args.args[0][0], str(powershell))
             self.assertEqual(run.call_args.kwargs['env']['MAPGIS_INSTALL_PREFIX'], str(prefix))
             self.assertTrue(run.call_args.kwargs['check'])
+            self.assertIn("$s.Arguments='-I -m mapgis_annotations gui'", run.call_args.args[0][-1])

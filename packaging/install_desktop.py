@@ -51,7 +51,7 @@ def runtime_inventory(prefix):
 def create_windows_launcher(prefix, *, shortcuts=True):
     prefix = Path(prefix).resolve()
     launcher = prefix/'MapGIS2QGIS.cmd'
-    launcher.write_text('@echo off\nstart "" "%~dp0pythonw.exe" -m mapgis_annotations gui\n', encoding='utf-8')
+    launcher.write_text('@echo off\nstart "" "%~dp0pythonw.exe" -I -m mapgis_annotations gui\n', encoding='utf-8')
     if shortcuts:
         # Constructor deliberately strips PATH to the prefix and core Windows
         # directories. WindowsPowerShell is a subdirectory of System32.
@@ -66,7 +66,7 @@ def create_windows_launcher(prefix, *, shortcuts=True):
                   "$p=Join-Path ([Environment]::GetFolderPath('Programs')) 'MapGIS2QGIS.lnk';"
                   "$s=$w.CreateShortcut($p);"
                   "$s.TargetPath=Join-Path $env:MAPGIS_INSTALL_PREFIX 'pythonw.exe';"
-                  "$s.Arguments='-m mapgis_annotations gui';"
+                  "$s.Arguments='-I -m mapgis_annotations gui';"
                   "$s.WorkingDirectory=$env:MAPGIS_INSTALL_PREFIX;$s.Save()")
         subprocess.run([str(powershell),'-NoProfile','-NonInteractive','-Command',script],
                        env=dict(os.environ, MAPGIS_INSTALL_PREFIX=str(prefix)), check=True)

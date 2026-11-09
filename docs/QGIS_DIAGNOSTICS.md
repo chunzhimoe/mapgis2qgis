@@ -1,5 +1,7 @@
 # Windows 的 PyQGIS 导入报错
 
+0.4.4 起，Windows 离线包的开始菜单/CMD 启动器和 GUI 工作进程自动使用安装包内的环境。裸 Python 命令若在启动前就因外部 `PYTHONHOME` 失败，可使用开始菜单，或 `python.exe -I -m mapgis_annotations gui`。下面脚本继续兼容现有0.4.3，用于诊断及临时恢复。
+
 `QGIS export requires PyQGIS; use QGIS Python, not pip install qgis` 表示制图阶段导入 `qgis.core` 失败。旧提示没有展示底层 ImportError，不能仅凭这句话判断电脑上没有 QGIS。离线安装包已经包含 QGIS，不要另用 pip 安装同名包。
 
 前面的 `You will likely lose important projection information ... PROJ string` 是 PyProj 对 CRS 格式转换的警告，不是这次中断的异常；程序的 CRS 输出保留 WKT。也不能凭该警告判定坐标错误。

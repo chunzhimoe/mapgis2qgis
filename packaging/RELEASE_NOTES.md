@@ -1,6 +1,10 @@
-## MapGIS2QGIS 0.4.3
+## MapGIS2QGIS 0.4.4
 
 全内置桌面版：Python、Tk GUI、MapGIS 原生转换库、QGIS、PyProj 和 Shapely 均包含在安装包内。
+
+修复 Windows 继承其他 Python/QGIS/Qt/Conda 环境后 `qgis._core` DLL 导入失败的问题。开始菜单和 CMD 启动器采用隔离 Python；CLI 在 GIS 加载前切换到安装包自己的路径环境，GUI 转换子进程同样隔离。只对包含 Conda QGIS 的 Windows 安装环境启用，不修改系统设置。-I 启动下日志明确使用 UTF-8，中文异常仍可读。
+
+Windows 安装验收增加外部 Python 伪 QGIS 包与错误 Qt/PROJ/GDAL 路径、PYTHONHOME 故障注入，实际核验原生转 PDF、GUI 后台进程及预览；报告随 Release 提供。PyQGIS 失败提示保留真实 ImportError 和解释器位置。Release 附独立 `qgis_diagnose.py`，现有0.4.3可用 `--launch-gui` 在已通过诊断的内置环境中临时启动。
 
 GUI 新增默认开启的「自动字号」，按图幅、每层注记间距和文字长度估算大小，字号栏作为上限。保留固定点位、原文字和源行，实际字号写入 `map/export.json` 的 `font_sizing`；可取消勾选使用手动大小。新增 07 自动字号 JSON，需 0.4.3；01–06 兼容旧版。间距估算不保证所有密集局部零重叠，细节可在 PDF/QGIS 中放大。
 
