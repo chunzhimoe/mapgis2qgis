@@ -22,6 +22,9 @@ def main():
         assert any(name.endswith('/Apache-2.0.txt') for name in bundle.namelist())
         assert any(name.endswith('/THIRD_PARTY_NOTICES.md') for name in bundle.namelist())
         assert bundle.read('mapgis_annotations/profiles/wulonggou_pipeline.json') == (root/'src/mapgis_annotations/profiles/wulonggou_pipeline.json').read_bytes()
+        for path in (root/'src/mapgis_annotations/fonts').iterdir():
+            assert bundle.read('mapgis_annotations/fonts/'+path.name) == path.read_bytes()
+        assert any(name.endswith('/SIL-OFL-1.1.txt') for name in bundle.namelist())
         assert not any(name.endswith(('.shp','.dbf','.gpkg','.pdf','.png','.pyc')) for name in bundle.namelist())
     with tarfile.open(source) as bundle:
         names = bundle.getnames()

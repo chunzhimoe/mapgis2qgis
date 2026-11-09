@@ -25,8 +25,12 @@ def main():
         verify_dataset(root/'result/annotations')
         assert result['map']['rendered_labels']==2
         assert (root/'result/map/map.pdf').stat().st_size>1000
+        font_report = json.loads((root/'result/map/export.json').read_text())['fonts']
+        assert font_report['probe_glyphs_verified']
+        assert (root/'result/map'/font_report['font_file']).is_file()
     report = {'status':'PASS','python':sys.executable,'qgis':Qgis.QGIS_VERSION,
-              'native_conversion':True,'annotation_conversion':True,'qgis_rendering':True,'hash_verification':True}
+              'native_conversion':True,'annotation_conversion':True,'qgis_rendering':True,'hash_verification':True,
+              'font_family':font_report['family'], 'chinese_greek_glyphs_verified':True}
     Path(sys.argv[1]).write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2))
 

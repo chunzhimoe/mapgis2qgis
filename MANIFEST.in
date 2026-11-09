@@ -6,6 +6,7 @@ recursive-include examples *.json *.py *.md
 recursive-include tests *.py
 recursive-include docs *.md
 recursive-include src/mapgis_annotations/profiles *.json
+recursive-include src/mapgis_annotations/fonts *.otf *.txt
 recursive-include tools *.py
 recursive-include packaging *.py *.sh *.bat *.txt *.md
 recursive-include .github *.yml

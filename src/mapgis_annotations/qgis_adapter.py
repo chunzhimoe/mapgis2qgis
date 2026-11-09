@@ -84,6 +84,9 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
     from qgis.PyQt.QtCore import QVariant, QSize
     from qgis.PyQt.QtGui import QColor, QFont
 
+    from .fonts import prepare_render_font
+    label_font, font_report = prepare_render_font(stage, font_family)
+
     manifest = json.loads((dataset/'manifest.json').read_text(encoding='utf-8'))
     for relative in manifest['product_sha256']:
         target = stage/'data'/relative
@@ -143,7 +146,7 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
                     raise AnnotationError('Display geometry changed: ' + name)
         if item['converted']:
             text = QgsTextFormat()
-            text.setFont(QFont(font_family))
+            text.setFont(label_font)
             text.setSize(font_size)
             text.setSizeUnit(Qgis.RenderUnit.Points if font_unit == 'points' else Qgis.RenderUnit.MapUnits)
             text.setColor(QColor('black'))
@@ -254,7 +257,7 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
     labels = labels.allLabels() if labels else []
     if any(not label.isPinned for label in labels):
         raise AnnotationError('An annotation was moved from its fixed anchor')
-    detail_results = render_views(project, ordered, stage, details, title)
+    detail_results = render_views(project, ordered, stage, details, title, label_font.family())
     project.layoutManager().addLayout(layout)
     project.setFilePathStorage(Qgis.FilePathType.Relative)
     if not project.write(str(stage/'map.qgz')):
@@ -263,7 +266,8 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
     if not reopened.read(str(stage/'map.qgz')) or not all(l.isValid() for l in reopened.mapLayers().values()):
         raise AnnotationError('Project reopening failed')
     result = {'status':'PASS', 'qgis':Qgis.QGIS_VERSION, 'layers':report, 'rendered_labels':len(labels),
-              'font_size':font_size, 'font_unit':font_unit, 'font_family':font_family,
+              'font_size':font_size, 'font_unit':font_unit, 'font_family':label_font.family(),
+              'fonts':font_report,
               'render_crs':destination.toWkt(), 'page_mm':[width_mm,height_mm], 'dpi':dpi,
               'input_verification':verification, 'project_reopened':True,
               'excluded_layers':excluded, 'details':detail_results,

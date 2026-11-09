@@ -39,7 +39,7 @@ def validate_views(views):
             raise AnnotationError('Detail layers must be a nonempty list')
 
 
-def render_views(project, ordered, output, views, title):
+def render_views(project, ordered, output, views, title, font_family='sans-serif'):
     from qgis.core import (QgsMapSettings, QgsMapRendererParallelJob, QgsRectangle, QgsCoordinateTransform)
     from qgis.PyQt.QtCore import QSize, Qt
     from qgis.PyQt.QtGui import QImage, QPainter, QFont, QColor
@@ -97,12 +97,12 @@ def render_views(project, ordered, output, views, title):
         panel.fill(QColor('white'))
         painter = QPainter(panel)
         painter.setPen(QColor('#202020'))
-        painter.setFont(QFont('sans-serif', 24))
+        painter.setFont(QFont(font_family, 24))
         painter.drawText(20, 45, str(title)[:100])
         painter.drawImage(0, 65, full)
         for index, (view, result) in enumerate(zip(views, results)):
             x, y = 20 + (index % 2)*995, top + (index//2)*cell_height
-            painter.setFont(QFont('sans-serif', 18))
+            painter.setFont(QFont(font_family, 18))
             painter.drawText(x, y+25, str(view.get('label', view['name']))[:60])
             picture = QImage(str(output/result['path'])).scaled(cell_width, cell_height-50, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             painter.drawImage(x, y+40, picture)

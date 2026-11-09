@@ -44,10 +44,13 @@ def main():
                 for name in ('map.pdf','map.png','map.qgz','preview.png'):
                     assert (output/'map'/name).stat().st_size > 100
                 assert manifest['map']['rendered_labels'] == 2
+                fonts = json.loads((output/'map/export.json').read_text())['fonts']
+                assert fonts['probe_glyphs_verified']
             if config['input_format'] != 'shp':
                 assert manifest['native_summary']['unreadable'] == (0 if config['strict_native'] else 1)
             report.append({'profile':profile.name,'status':'PASS','pdf':config['render']['enabled'],
-                           'source_hashes_verified':True,'records':2})
+                           'source_hashes_verified':True,'records':2,
+                           'font_glyphs_verified':bool(config['render']['enabled'])})
         strict = ROOT/'examples/profiles/02_strict_full_pdf.json'
         refused = root/'strict-refused'
         result = subprocess.run([sys.executable,'-m','mapgis_annotations','pipeline',str(partial),

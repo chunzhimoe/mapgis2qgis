@@ -9,6 +9,7 @@ mapgis-annotations pipeline 原生图件目录 新结果目录 --config examples
 
 完整流程见 [docs/PIPELINE.md](docs/PIPELINE.md)，GUI 见 [docs/GUI.md](docs/GUI.md)。
 六套可直接选择的 JSON 见 [配置文件与使用说明](examples/profiles/README.md)：通用完整 PDF、严格完整 PDF、快速预览、仅数据、已有 SHP 制图、五龙沟连排与局部图。Release 同时提供 `MapGIS2QGIS-profiles.zip`；已有 0.4.0 安装包也能使用这些完整配置。PDF 输出位置为你选择的输出目录下 `map/map.pdf`。
+0.4.2 起内置开源 Noto 中文字体，渲染时核查中文/希腊字形；Release 提供两个平台的 PNG/PDF 字体样张与核验报告。成果内的 `map/fonts/` 包含字体和许可证，便于在外部 QGIS 使用。
 离线桌面安装包面向 **macOS Apple Silicon（arm64）与 Windows x64**，包含 Python、Tk、转换库、QGIS、PyProj 和 Shapely，无需另装运行环境。GitHub Actions 在推送 main 或手动触发时构建 `.dmg` 和安装 `.exe`；DMG 内含 `.pkg` 安装器及许可证/构建记录，Mac 从 Applications 打开版本化应用，Windows 从开始菜单打开。构建后实际运行安装环境的转换、渲染与 GUI 测试；两个平台全部通过后，Actions 自动发布到同一个 Release。当前开发包未签名或公证。构建说明见 [docs/DESKTOP_BUILD.md](docs/DESKTOP_BUILD.md)。
 
 通用 MapGIS 转换与注记校正库，Python API 与命令行工具，分两段：

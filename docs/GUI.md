@@ -19,4 +19,6 @@ PDF 位于你选择的新输出目录下 `map/map.pdf`；QGIS 工程是 `map/map
 
 从 0.4.1 起，加载只含 `strict_native=false` 等部分参数的 JSON 会保留当前绘图勾选、幅宽、DPI 和字号；配置明确写出的绘图参数才更新界面。完整配置中的 `render.enabled=true` 会勾选绘图。支持 Windows 记事本保存的 UTF-8 BOM 配置，并尊重配置指定的 `input_format`。加载后仍可在界面调整显示的参数，开始时以界面值为准。
 
+从 0.4.2 起内置 Noto Sans CJK SC 中文字体，渲染进程自动加载。指定字体不可用或不含基本中文/希腊字形时，回退到内置字体，并在 `map/export.json` 的 `fonts` 中记录实际字体。字形样张随 Release 提供。外部 QGIS 打开工程时如缺字，可安装 `map/fonts/NotoSansCJKsc-Regular.otf`。这不恢复原 MapGIS 专用符号字体。
+
 处理运行在独立Python子进程，Tk主线程只更新界面。任务配置/阶段事件/日志放在临时目录，子进程结束后清理；成功结果通过manifest及哈希核验。自动识别的CRS、未绘制层与无效面保留在结果报告中。

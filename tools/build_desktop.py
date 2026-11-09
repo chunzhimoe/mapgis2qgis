@@ -21,7 +21,8 @@ def make_context(wheel, directory, version, target='osx-arm64'):
     shutil.copyfile(wheel, directory/Path(wheel).name)
     for name in ('post_install.sh','post_install.bat','install_desktop.py'):
         shutil.copyfile(ROOT/'packaging'/name, directory/name)
-    license_text = (ROOT/'LICENSE').read_text()+'\n\n'+(ROOT/'THIRD_PARTY_NOTICES.md').read_text()+'\n\n'+(ROOT/'licenses/Apache-2.0.txt').read_text()
+    license_text = '\n\n'.join(path.read_text() for path in (ROOT/'LICENSE', ROOT/'THIRD_PARTY_NOTICES.md',
+                              ROOT/'licenses/Apache-2.0.txt', ROOT/'licenses/SIL-OFL-1.1.txt'))
     (directory/'LICENSE.txt').write_text(license_text, encoding='utf-8')
     spec = {'name':'MapGIS2QGIS', 'version':version, 'channels':['conda-forge'],
             'specs':['python >=3.11,<3.12','qgis >=3.40,<3.42','pyshp >=2.3,<4','pyproj >=3.4,<4',

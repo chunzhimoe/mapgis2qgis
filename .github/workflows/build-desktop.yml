@@ -35,7 +35,9 @@ jobs:
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Package reviewed JSON presets
-        run: python tools/package_profiles.py
+        run: |
+          python tools/package_profiles.py
+          python tools/package_fonts.py
       - name: Prepare draft delivery
         id: release
         env:
@@ -44,7 +46,7 @@ jobs:
           RELEASE_TAG: desktop-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           gh release create "$RELEASE_TAG" --draft --target "$GITHUB_SHA" --title 'MapGIS2QGIS offline desktop build' --notes 'Development build containing Python, Tk, the conversion library and QGIS. Installer assets are attached only after installation and GUI tests pass. Unsigned build.'
-          gh release upload "$RELEASE_TAG" dist/MapGIS2QGIS-profiles.zip examples/profiles/*.json
+          gh release upload "$RELEASE_TAG" dist/MapGIS2QGIS-profiles.zip dist/MapGIS2QGIS-fonts.zip examples/profiles/*.json
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
   desktop:
@@ -121,6 +123,7 @@ jobs:
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/installed-gui.json
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/profiles_smoke.py dist/installers/profiles-smoke.json
+          "/Applications/MapGIS2QGIS-$version/bin/python" tests/fonts_smoke.py dist/installers/font-check
       - name: Install Windows EXE and test its runtime
         if: runner.os == 'Windows'
         shell: pwsh
@@ -146,6 +149,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$prefix/python.exe" tests/profiles_smoke.py dist/installers/profiles-smoke.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/fonts_smoke.py dist/installers/font-check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload verification reports
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -154,6 +159,7 @@ jobs:
           path: |
             dist/installers/*.json
             dist/installers/*.txt
+            dist/installers/font-check/*
           retention-days: 7
       - name: Attach verified installer to draft release
         env:
@@ -171,6 +177,9 @@ jobs:
           cp dist/installers/installed-runtime.json "dist/release/runtime-$TARGET_PLATFORM.json"
           cp dist/installers/installed-gui.json "dist/release/gui-$TARGET_PLATFORM.json"
           cp dist/installers/profiles-smoke.json "dist/release/profiles-$TARGET_PLATFORM.json"
+          cp dist/installers/font-check/font-validation.json "dist/release/fonts-$TARGET_PLATFORM.json"
+          cp dist/installers/font-check/font-probe.png "dist/release/font-probe-$TARGET_PLATFORM.png"
+          cp dist/installers/font-check/font-probe.pdf "dist/release/font-probe-$TARGET_PLATFORM.pdf"
           cp dist/installers/SHA256SUMS.txt "dist/release/SHA256SUMS-$TARGET_PLATFORM.txt"
           gh release upload "$RELEASE_TAG" dist/release/* --clobber
           gh release view "$RELEASE_TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
