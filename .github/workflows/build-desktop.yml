@@ -62,9 +62,35 @@ jobs:
         shell: bash -el {0}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Fetch verified Miniforge through GitHub API
+        id: bootstrap
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          MINIFORGE_VERSION: '26.9.4-2'
+        run: |
+          if [[ "$TARGET_PLATFORM" == 'win-64' ]]; then
+            filename=Miniforge3-Windows-x86_64.exe
+          else
+            filename=Miniforge3-MacOSX-arm64.sh
+          fi
+          metadata=$(gh api "repos/conda-forge/miniforge/releases/tags/$MINIFORGE_VERSION" --jq ".assets[] | select(.name == \"$filename\") | [.id,.digest] | @tsv")
+          read -r asset_id expected <<< "$metadata"
+          [[ "$asset_id" =~ ^[0-9]+$ && "$expected" == sha256:* ]]
+          installer="$RUNNER_TEMP/$filename"
+          gh api -H 'Accept: application/octet-stream' "repos/conda-forge/miniforge/releases/assets/$asset_id" > "$installer"
+          if [[ "$TARGET_PLATFORM" == 'win-64' ]]; then
+            actual=$(sha256sum "$installer" | cut -d ' ' -f 1)
+            url="file:///$(cygpath -m "$installer")"
+          else
+            actual=$(shasum -a 256 "$installer" | cut -d ' ' -f 1)
+            url="file://$installer"
+          fi
+          test "$actual" = "${expected#sha256:}"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
       - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
         with:
-          miniforge-version: '26.9.4-2'
+          installer-url: ${{ steps.bootstrap.outputs.url }}
           activate-environment: builder
           python-version: '3.11'
           channels: conda-forge
