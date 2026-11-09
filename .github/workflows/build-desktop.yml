@@ -123,3 +123,18 @@ jobs:
           cp dist/installers/SHA256SUMS.txt "dist/release/SHA256SUMS-$TARGET_PLATFORM.txt"
           gh release upload "$RELEASE_TAG" dist/release/* --clobber
           gh release view "$RELEASE_TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
+
+  publish-release:
+    needs: [prepare-release, desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Publish only after both installed runtimes pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
+        run: |
+          gh release edit "$RELEASE_TAG" --draft=false --latest --title 'MapGIS2QGIS 0.4.0' --notes-file packaging/RELEASE_NOTES.md
+          gh release view "$RELEASE_TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"

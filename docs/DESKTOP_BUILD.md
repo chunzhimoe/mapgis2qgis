@@ -19,7 +19,8 @@ python tools/build_desktop.py
 1. Linux运行单元/集成测试，并确认没有跟踪changes目录。
 2. macOS arm64和Windows x64分别构建全内置安装器，Mac另校验DMG。
 3. 将PKG或EXE安装到临时CI主机，以安装后的Python实际运行原生转换、注记、QGIS渲染及哈希核验，再打开Tk窗口验证后台处理与预览。
-4. 小型验证报告上传到Actions；大体积DMG/EXE与SHA-256保存到同一草稿Release，避免长期占用Actions大文件存储。草稿不会自动公开发布。
+4. 小型验证报告上传到Actions；大体积DMG/EXE与SHA-256先保存到同一草稿Release，避免长期占用Actions大文件存储。
+5. 两个平台的构建、安装、运行时及GUI验证全部通过后，publish-release自动将该Release正式发布。任一平台失败时不发布。
 
 仓库使用固定SHA的官方Actions，构建记录包含实际依赖解算结果。未配置Apple Developer签名/公证证书，开发安装包不可宣称已签名或公证。各运行组件按其自身许可分发；本项目原有MIT代码和适配模块Apache-2.0许可保留。实际平台构建结果以Actions运行记录和安装后的测试报告为准。
 
