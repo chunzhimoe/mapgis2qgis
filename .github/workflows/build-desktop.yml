@@ -80,10 +80,10 @@ jobs:
           installer="$RUNNER_TEMP/$filename"
           gh release download "$MINIFORGE_VERSION" --repo conda-forge/miniforge --pattern "$filename" --dir "$RUNNER_TEMP" --clobber
           if [[ "$TARGET_PLATFORM" == 'win-64' ]]; then
-            actual=$(sha256sum "$installer" | cut -d ' ' -f 1)
+            actual=$(sha256sum < "$installer" | cut -d ' ' -f 1)
             url="file:///$(cygpath -m "$installer")"
           else
-            actual=$(shasum -a 256 "$installer" | cut -d ' ' -f 1)
+            actual=$(shasum -a 256 < "$installer" | cut -d ' ' -f 1)
             url="file://$installer"
           fi
           if [[ "$actual" != "${expected#sha256:}" ]]; then
