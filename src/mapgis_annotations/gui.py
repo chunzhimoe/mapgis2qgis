@@ -150,13 +150,16 @@ class Workbench:
         from tkinter import messagebox
         try:
             from .pipeline import PipelineConfig
-            config = PipelineConfig.from_dict(json.loads(Path(path).read_text(encoding='utf-8')))
+            values = json.loads(Path(path).read_text(encoding='utf-8-sig'))
+            PipelineConfig.from_dict(values)
+            options = values.get('render', {})
             self.profile.set(str(path))
-            self.render.set(config.render.get('enabled', False))
-            self.size.set(str(config.render.get('font_size',9)))
-            self.unit.set(config.render.get('font_unit','points'))
-            self.width.set(str(config.render.get('width_mm',1000)))
-            self.dpi.set(str(config.render.get('dpi',300)))
+            if 'enabled' in options:
+                self.render.set(options['enabled'])
+            for key, variable in (('font_size', self.size), ('font_unit', self.unit),
+                                  ('width_mm', self.width), ('dpi', self.dpi)):
+                if key in options:
+                    variable.set(str(options[key]))
         except (AnnotationError, OSError, ValueError) as exc:
             messagebox.showerror('配置无法读取', str(exc))
 

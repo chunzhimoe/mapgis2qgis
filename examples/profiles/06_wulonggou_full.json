@@ -1,0 +1,78 @@
+{
+  "input_format": "native",
+  "native": {
+    "style": true,
+    "georeference": true
+  },
+  "annotations": {
+    "conversion": {
+      "note_field": "注记",
+      "note_fields": {},
+      "encoding": null,
+      "strict_controls": false,
+      "field_aliases": {}
+    },
+    "annotation_layers": null,
+    "pairing": {
+      "legend_layer": "地质图例_点",
+      "target_layers": [
+        "5万地质矿产图_点"
+      ],
+      "min_dx": 20,
+      "max_dx": 500,
+      "max_dy": 35,
+      "require_legend": true
+    },
+    "crosswalks": [
+      {
+        "points": "5万地质矿产图_点",
+        "polygons": "5万地质矿产图_区",
+        "invalid_policy": "exclude"
+      }
+    ]
+  },
+  "render": {
+    "enabled": true,
+    "width_mm": 1000,
+    "dpi": 300,
+    "font_size": 100,
+    "font_family": "sans-serif",
+    "font_unit": "map",
+    "render_crs": null,
+    "max_pixels": 120000000,
+    "missing_crs": "exclude",
+    "details": [
+      {
+        "name": "legend",
+        "label": "中文图例",
+        "layer": "地质图例_点",
+        "text": "二长花岗岩",
+        "padding": [
+          900,
+          750,
+          1500,
+          800
+        ],
+        "layers": [
+          "地质图例_点"
+        ]
+      },
+      {
+        "name": "joined",
+        "label": "岩性—时代连排",
+        "layer": "5万地质矿产图_点",
+        "field": "DISPLAY_H",
+        "text": "ηγT<sub>2</sub>",
+        "pick": "middle",
+        "padding": [
+          2200,
+          1450,
+          2200,
+          1450
+        ]
+      }
+    ],
+    "title": "五龙沟 · 原生转换与标准注记"
+  },
+  "strict_native": false
+}

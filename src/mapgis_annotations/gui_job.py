@@ -23,7 +23,7 @@ class JobSpec:
 
 
 def make_job(source, output, profile='', *, render=False, epsg='', factor='', dpi='300', width='1000',
-             font_size='9', font_unit='points', input_format='auto'):
+             font_size='9', font_unit='points', input_format=None):
     if not str(source).strip() or not str(output).strip():
         raise AnnotationError('请选择输入数据和输出目录')
     source, output = Path(source).expanduser().resolve(), Path(output).expanduser().resolve()
@@ -32,8 +32,9 @@ def make_job(source, output, profile='', *, render=False, epsg='', factor='', dp
         raise AnnotationError('输入数据不存在')
     if output.exists() or output.is_relative_to(root) or root.is_relative_to(output):
         raise AnnotationError('输出须为输入目录以外的新目录')
-    config = PipelineConfig.from_dict(json.loads(Path(profile).read_text(encoding='utf-8'))) if profile else PipelineConfig()
-    config.input_format = input_format
+    config = PipelineConfig.from_dict(json.loads(Path(profile).read_text(encoding='utf-8-sig'))) if profile else PipelineConfig()
+    if input_format is not None:
+        config.input_format = input_format
     try:
         if epsg.strip():
             config.native['epsg'] = int(epsg)

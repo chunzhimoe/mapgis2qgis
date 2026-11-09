@@ -26,7 +26,9 @@ def main():
     with tarfile.open(source) as bundle:
         names = bundle.getnames()
         for required in ('README.md','LICENSE','THIRD_PARTY_NOTICES.md','licenses/Apache-2.0.txt',
-                         'docs/API.md','examples/generic.json','tests/package_smoke.py'):
+                         'docs/API.md','examples/generic.json','tests/package_smoke.py',
+                         'examples/profiles/README.md','examples/profiles/01_generic_full_pdf.json',
+                         'examples/profiles/06_wulonggou_full.json'):
             assert any(name.endswith('/'+required) for name in names), required
         assert not any('/out/' in name or '/changes/' in name or name.endswith(('.shp','.dbf','.gpkg','.pdf','.png','.pyc')) for name in names)
     result = {'status':'PASS','current_python_modules_match_wheel':True,'source_docs_examples_present':True,

@@ -1,0 +1,33 @@
+{
+  "input_format": "auto",
+  "native": {
+    "style": true,
+    "georeference": true
+  },
+  "annotations": {
+    "conversion": {
+      "note_field": null,
+      "note_fields": {},
+      "encoding": null,
+      "strict_controls": false,
+      "field_aliases": {}
+    },
+    "annotation_layers": null,
+    "pairing": null,
+    "crosswalks": []
+  },
+  "render": {
+    "enabled": true,
+    "width_mm": 600,
+    "dpi": 300,
+    "font_size": 9,
+    "font_family": "sans-serif",
+    "font_unit": "points",
+    "render_crs": null,
+    "max_pixels": 120000000,
+    "missing_crs": "exclude",
+    "details": [],
+    "title": "MapGIS · 全图与标准注记"
+  },
+  "strict_native": false
+}

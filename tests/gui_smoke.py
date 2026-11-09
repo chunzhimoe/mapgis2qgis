@@ -29,6 +29,10 @@ def main():
         app.source.set(str(source))
         app.output.set(str(output))
         app.render.set(True)
+        profile = Path(temporary)/'部分配置.json'
+        profile.write_text(json.dumps({'strict_native':False}), encoding='utf-8-sig')
+        app.load_profile(profile)
+        assert app.render.get(), 'Loading a partial profile must retain the drawing checkbox'
         app.width.set('180')
         app.dpi.set('96')
         deadline = time.monotonic()+90

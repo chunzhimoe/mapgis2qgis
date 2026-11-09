@@ -33,6 +33,9 @@ jobs:
     outputs:
       tag: ${{ steps.release.outputs.tag }}
     steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Package reviewed JSON presets
+        run: python tools/package_profiles.py
       - name: Prepare draft delivery
         id: release
         env:
@@ -41,6 +44,7 @@ jobs:
           RELEASE_TAG: desktop-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           gh release create "$RELEASE_TAG" --draft --target "$GITHUB_SHA" --title 'MapGIS2QGIS offline desktop build' --notes 'Development build containing Python, Tk, the conversion library and QGIS. Installer assets are attached only after installation and GUI tests pass. Unsigned build.'
+          gh release upload "$RELEASE_TAG" dist/MapGIS2QGIS-profiles.zip examples/profiles/*.json
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
 
   desktop:
@@ -116,6 +120,7 @@ jobs:
           sudo installer -pkg "${packages[0]}" -target /
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/installed-gui.json
+          "/Applications/MapGIS2QGIS-$version/bin/python" tests/profiles_smoke.py dist/installers/profiles-smoke.json
       - name: Install Windows EXE and test its runtime
         if: runner.os == 'Windows'
         shell: pwsh
@@ -138,6 +143,8 @@ jobs:
           & "$prefix/python.exe" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$prefix/python.exe" tests/gui_smoke.py dist/installers/installed-gui.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/profiles_smoke.py dist/installers/profiles-smoke.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload verification reports
         if: always()
@@ -163,6 +170,7 @@ jobs:
           cp dist/installers/build.json "dist/release/build-$TARGET_PLATFORM.json"
           cp dist/installers/installed-runtime.json "dist/release/runtime-$TARGET_PLATFORM.json"
           cp dist/installers/installed-gui.json "dist/release/gui-$TARGET_PLATFORM.json"
+          cp dist/installers/profiles-smoke.json "dist/release/profiles-$TARGET_PLATFORM.json"
           cp dist/installers/SHA256SUMS.txt "dist/release/SHA256SUMS-$TARGET_PLATFORM.txt"
           gh release upload "$RELEASE_TAG" dist/release/* --clobber
           gh release view "$RELEASE_TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"
@@ -179,5 +187,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.prepare-release.outputs.tag }}
         run: |
-          gh release edit "$RELEASE_TAG" --draft=false --latest --title 'MapGIS2QGIS 0.4.0' --notes-file packaging/RELEASE_NOTES.md
+          version=$(sed -n 's/^version = //p' setup.cfg)
+          gh release edit "$RELEASE_TAG" --draft=false --latest --title "MapGIS2QGIS $version" --notes-file packaging/RELEASE_NOTES.md
           gh release view "$RELEASE_TAG" --json url --jq .url >> "$GITHUB_STEP_SUMMARY"

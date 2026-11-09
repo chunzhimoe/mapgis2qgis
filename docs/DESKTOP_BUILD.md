@@ -10,7 +10,9 @@
 python tools/build_desktop.py
 ```
 
-生成应用wheel和constructor配置，Mac生成PKG与DMG，Windows生成EXE。DMG包括安装器、应用源码、第三方许可证和构建/包版本记录。Mac安装到所选位置的`Applications/MapGIS2QGIS-0.4.0/`并生成.app；Windows默认安装到当前用户LocalAppData，生成开始菜单快捷方式与目录内.cmd启动器。安装脚本使用包内wheel离线安装库，启动器根据自身路径定位Python，不依赖用户PATH或硬编码构建路径。
+生成应用wheel和constructor配置，Mac生成PKG与DMG，Windows生成EXE。DMG包括安装器、应用源码、第三方许可证和构建/包版本记录。Mac安装到所选位置的`Applications/MapGIS2QGIS-<版本>/`并生成.app；Windows默认安装到当前用户LocalAppData，生成开始菜单快捷方式与目录内.cmd启动器。安装脚本使用包内wheel离线安装库，启动器根据自身路径定位Python，不依赖用户PATH或硬编码构建路径。
+
+`python tools/package_profiles.py` 生成单独的 `dist/MapGIS2QGIS-profiles.zip`，仅包含六套配置与中文说明。Actions 将它附加到同一 Release，并使用安装后的 Python 运行 `tests/profiles_smoke.py`，验证五套通用配置的真实导出与严格模式回滚。
 
 ## Actions
 
