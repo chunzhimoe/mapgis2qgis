@@ -73,8 +73,10 @@ jobs:
         run: conda install -y -c conda-forge constructor conda-standalone setuptools wheel
       - name: Install Windows installer compiler
         if: runner.os == 'Windows'
-        run: conda install -y -c conda-forge nsis
+        run: conda install -y -c conda-forge 'nsis=*=*log*'
       - name: Build full offline installer
+        env:
+          NSIS_USING_LOG_BUILD: '1'
         run: python tools/build_desktop.py
       - name: Install macOS PKG and test its runtime
         if: runner.os == 'macOS'
@@ -90,7 +92,17 @@ jobs:
         run: |
           $prefix = Join-Path $env:RUNNER_TEMP 'MapGIS2QGIS-installed'
           $installer = (Get-ChildItem dist/installers/*.exe | Select-Object -First 1).FullName
-          $process = Start-Process -FilePath $installer -ArgumentList '/InstallationType=JustMe','/RegisterPython=0','/AddToPath=0','/S',("/D="+$prefix) -Wait -PassThru
+          $env:CONDA_VERBOSITY = '2'
+          $process = Start-Process -FilePath $installer -ArgumentList '/InstallationType=JustMe','/RegisterPython=0','/AddToPath=0','/S',("/D="+$prefix) -Wait -PassThru -RedirectStandardOutput dist/installers/windows-install-stdout.txt -RedirectStandardError dist/installers/windows-install-stderr.txt
+          foreach ($name in @('install.log','mapgis-post-install.log')) {
+            $log = Join-Path $prefix $name
+            if (Test-Path $log) {
+              Copy-Item $log (Join-Path 'dist/installers' ($name+'.txt'))
+              Get-Content $log -Tail 160
+            }
+          }
+          Get-Content dist/installers/windows-install-stdout.txt -Tail 160
+          Get-Content dist/installers/windows-install-stderr.txt -Tail 160
           if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
           & "$prefix/python.exe" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
