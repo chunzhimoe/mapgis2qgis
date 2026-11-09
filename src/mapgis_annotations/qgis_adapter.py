@@ -16,7 +16,7 @@ from .render_views import validate_views, render_views
 
 def export_project(dataset, output, *, width_mm=1000, dpi=300, font_size=9,
                    font_family='Times New Roman', font_unit='points', render_crs=None,
-                   max_pixels=120000000, missing_crs='error', details=None, title='MapGIS'):
+                   max_pixels=120000000, missing_crs='error', details=None, title='MapGIS', auto_font_size=False):
     """Create a self-contained QGZ, vector PDF, PNG and preview from a workflow.
 
     Run in a Python environment providing PyQGIS, e.g. QGIS's Python console
@@ -32,6 +32,8 @@ def export_project(dataset, output, *, width_mm=1000, dpi=300, font_size=9,
         raise AnnotationError('dpi must be a positive integer')
     if font_unit not in ('points', 'map'):
         raise AnnotationError('font_unit must be points or map')
+    if not isinstance(auto_font_size, bool):
+        raise AnnotationError('auto_font_size must be boolean')
     if missing_crs not in ('error', 'exclude'):
         raise AnnotationError('missing_crs must be error or exclude')
     details = [] if details is None else details
@@ -58,7 +60,7 @@ def export_project(dataset, output, *, width_mm=1000, dpi=300, font_size=9,
         result = None
         try:
             result = _export(dataset, stage, verification, width_mm, int(dpi), font_size,
-                             font_family, font_unit, render_crs, max_pixels, missing_crs, details, title)
+                             font_family, font_unit, render_crs, max_pixels, missing_crs, details, title, auto_font_size)
         except Exception as exc:
             # Release native objects while QGIS is live, including frames held
             # in an exception traceback, before moving or cleaning any files.
@@ -74,7 +76,7 @@ def export_project(dataset, output, *, width_mm=1000, dpi=300, font_size=9,
 
 
 def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
-            font_unit, render_crs, max_pixels, missing_crs, details, title):
+            font_unit, render_crs, max_pixels, missing_crs, details, title, auto_font_size):
     from qgis.core import (Qgis, QgsApplication, QgsVectorLayer, QgsProject, QgsRectangle,
         QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsWkbTypes,
         QgsField, QgsFeature, QgsVectorFileWriter, QgsMarkerSymbol, QgsLineSymbol,
@@ -190,11 +192,40 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
             continue
         transform = QgsCoordinateTransform(layer.crs(), destination, project)
         extent.combineExtentWith(transform.transformBoundingBox(layer.extent()))
+    font_sizing = {}
+    if auto_font_size:
+        from .font_sizing import estimate_font_size
+        units_per_point = (extent.width() if extent.width() > 0 else max(extent.height(),1))/(width_mm*72/25.4)
+        ceiling = font_size if font_unit == 'map' else font_size*units_per_point
+        for layer, info in zip(layers, report):
+            if not info['converted']:
+                continue
+            transform = QgsCoordinateTransform(layer.crs(), destination, project)
+            anchors = []
+            for feature in layer.getFeatures():
+                value = feature[info['display_field']]
+                if isinstance(value, str) and value.strip() and not feature.geometry().isEmpty():
+                    point = transform.transform(feature.geometry().asPoint())
+                    anchors.append((point.x(),point.y(),value))
+            sizing = estimate_font_size(anchors, ceiling)
+            sizing['applied'] = sizing['estimated'] and sizing['font_size'] < ceiling*.999
+            sizing['effective_font_size'], sizing['effective_font_unit'] = font_size, font_unit
+            if sizing['applied']:
+                label = layer.labeling().settings()
+                text = label.format()
+                text.setSize(sizing['font_size'])
+                text.setSizeUnit(Qgis.RenderUnit.MapUnits)
+                label.setFormat(text)
+                layer.setLabeling(QgsVectorLayerSimpleLabeling(label))
+                sizing['effective_font_size'], sizing['effective_font_unit'] = sizing['font_size'], 'map'
+            font_sizing[layer.name()] = sizing
     # Include label extents conservatively in destination map units.
     unit_size = font_size if font_unit == 'map' else font_size * max(extent.width(), extent.height(), 1)/(width_mm*72/25.4)
     for layer, info in zip(layers, report):
         if not info['converted']:
             continue
+        sizing = font_sizing.get(layer.name(), {})
+        layer_unit_size = sizing['font_size'] if sizing.get('applied') else unit_size
         transform = QgsCoordinateTransform(layer.crs(), destination, project)
         for feature in layer.getFeatures():
             if feature.geometry().isEmpty():
@@ -202,8 +233,8 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
             point = transform.transform(feature.geometry().asPoint())
             text = feature['LABEL_TXT']
             if isinstance(text, str) and text:
-                extent.combineExtentWith(QgsRectangle(point.x()-unit_size*.5, point.y()-unit_size,
-                    point.x()+(len(text)+1)*unit_size*1.1, point.y()+unit_size*2))
+                extent.combineExtentWith(QgsRectangle(point.x()-layer_unit_size*.5, point.y()-layer_unit_size,
+                    point.x()+(len(text)+1)*layer_unit_size*1.1, point.y()+layer_unit_size*2))
     if extent.width() <= 0 or extent.height() <= 0 or not all(math.isfinite(v) for v in
             (extent.xMinimum(), extent.xMaximum(), extent.yMinimum(), extent.yMaximum())):
         raise AnnotationError('No finite drawable map extent')
@@ -268,6 +299,7 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
     result = {'status':'PASS', 'qgis':Qgis.QGIS_VERSION, 'layers':report, 'rendered_labels':len(labels),
               'font_size':font_size, 'font_unit':font_unit, 'font_family':label_font.family(),
               'fonts':font_report,
+              'auto_font_size':auto_font_size, 'font_sizing':font_sizing,
               'render_crs':destination.toWkt(), 'page_mm':[width_mm,height_mm], 'dpi':dpi,
               'input_verification':verification, 'project_reopened':True,
               'excluded_layers':excluded, 'details':detail_results,

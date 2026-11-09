@@ -61,6 +61,7 @@ def main(argv=None):
     export.add_argument('--font-unit', choices=('points', 'map'), default='points')
     export.add_argument('--render-crs')
     export.add_argument('--font-family', default='Times New Roman')
+    export.add_argument('--auto-font-size', action='store_true')
     args = parser.parse_args(argv)
     try:
         if args.command == 'gui':
@@ -101,7 +102,8 @@ def main(argv=None):
             from .qgis_adapter import export_project
             result = export_project(args.directory, args.output, width_mm=args.width_mm,
                                     dpi=args.dpi, font_size=args.font_size, font_family=args.font_family,
-                                    font_unit=args.font_unit, render_crs=args.render_crs)
+                                    font_unit=args.font_unit, render_crs=args.render_crs,
+                                    auto_font_size=args.auto_font_size)
             result = {'status': result['status'], 'qgis': result['qgis'],
                       'layers': len(result['layers']), 'rendered_labels': result['rendered_labels'],
                       'output': str(Path(args.output).resolve())}

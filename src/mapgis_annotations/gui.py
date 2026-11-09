@@ -74,6 +74,10 @@ class Workbench:
         unit = ttk.Combobox(advanced, textvariable=self.unit, values=['points','map'], state='readonly', width=10)
         unit.grid(row=2, column=3, columnspan=2, sticky='e', padx=4)
         self.controls.append(unit)
+        self.auto_font = tk.BooleanVar(value=True)
+        auto = ttk.Checkbutton(advanced, text='自动字号（按图幅与注记间距缩小，字号栏为上限）', variable=self.auto_font)
+        auto.grid(row=3, column=0, columnspan=5, sticky='w', pady=(8,0))
+        self.controls.append(auto)
         bar = ttk.Frame(body)
         bar.pack(fill='x', pady=4)
         self.start_button = ttk.Button(bar, text='开始转换', style='Accent.TButton', command=self.start)
@@ -156,6 +160,8 @@ class Workbench:
             self.profile.set(str(path))
             if 'enabled' in options:
                 self.render.set(options['enabled'])
+            if 'auto_font_size' in options:
+                self.auto_font.set(options['auto_font_size'])
             for key, variable in (('font_size', self.size), ('font_unit', self.unit),
                                   ('width_mm', self.width), ('dpi', self.dpi)):
                 if key in options:
@@ -174,7 +180,7 @@ class Workbench:
         try:
             spec = make_job(self.source.get(), self.output.get(), self.profile.get(), render=self.render.get(),
                             epsg=self.epsg.get(), factor=self.factor.get(), dpi=self.dpi.get(), width=self.width.get(),
-                            font_size=self.size.get(), font_unit=self.unit.get())
+                            font_size=self.size.get(), font_unit=self.unit.get(), auto_font_size=self.auto_font.get())
             self.runner.start(spec)
         except (AnnotationError, OSError, ValueError) as exc:
             messagebox.showerror('无法开始', str(exc))

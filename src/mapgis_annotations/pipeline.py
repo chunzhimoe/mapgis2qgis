@@ -51,9 +51,11 @@ class PipelineConfig:
             raise AnnotationError('annotations must be an object')
         WorkflowConfig.from_dict(self.annotations).validate()
         allowed = {'enabled','width_mm','dpi','font_size','font_family','font_unit','render_crs',
-                   'max_pixels','missing_crs','details','title'}
+                   'max_pixels','missing_crs','details','title','auto_font_size'}
         if not isinstance(self.render, dict) or set(self.render) - allowed or not isinstance(self.render.get('enabled', False), bool):
             raise AnnotationError('Invalid render options')
+        if not isinstance(self.render.get('auto_font_size', False), bool):
+            raise AnnotationError('auto_font_size must be boolean')
         from .render_views import validate_views
         validate_views(self.render.get('details', []))
 

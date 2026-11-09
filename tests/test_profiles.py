@@ -38,7 +38,7 @@ class ProfileSelection(unittest.TestCase):
         F.write_points(self.source/'labels.WT', [{'x':105,'y':35,'text':'测试'}],
                        proj=0, ellipsoid=7, scale=0)
         self.view = SimpleNamespace(profile=Value(''), render=Value(True), size=Value('8'),
-                                    unit=Value('points'), width=Value('700'), dpi=Value('200'))
+                                    unit=Value('points'), width=Value('700'), dpi=Value('200'), auto_font=Value(True))
         self.messages = SimpleNamespace(showerror=Mock())
         self.tk = patch.dict(sys.modules, {'tkinter':SimpleNamespace(messagebox=self.messages)})
         self.tk.start()
@@ -51,7 +51,8 @@ class ProfileSelection(unittest.TestCase):
     def job(self):
         return make_job(self.source, self.root/'output', self.view.profile.get(),
                         render=self.view.render.get(), width=self.view.width.get(), dpi=self.view.dpi.get(),
-                        font_size=self.view.size.get(), font_unit=self.view.unit.get())
+                        font_size=self.view.size.get(), font_unit=self.view.unit.get(),
+                        auto_font_size=self.view.auto_font.get())
 
     def test_loading_partial_bom_profile_keeps_drawing_and_user_sizes(self):
         path = self.root/'partial.json'
@@ -89,9 +90,16 @@ class ProfileSelection(unittest.TestCase):
         override = make_job(self.source, self.root/'other', path, input_format='auto')
         self.assertEqual(override.config['input_format'], 'auto')
 
+    def test_gui_auto_font_option_survives_partial_profile_and_can_be_disabled(self):
+        self.load(PRESETS/'07_auto_full_pdf.json')
+        self.assertTrue(self.job().config['render']['auto_font_size'])
+        self.view.auto_font.set(False)
+        self.load(PRESETS/'01_generic_full_pdf.json')
+        self.assertFalse(self.job().config['render']['auto_font_size'])
+
     def test_presets_validate_and_zip_contains_exact_reviewed_files(self):
         paths = sorted(PRESETS.glob('*.json'))
-        self.assertEqual(len(paths), 6)
+        self.assertEqual(len(paths), 7)
         for path in paths:
             with self.subTest(path=path.name):
                 PipelineConfig.from_dict(json.loads(path.read_text(encoding='utf-8'))).validate()

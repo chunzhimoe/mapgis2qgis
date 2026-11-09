@@ -66,7 +66,8 @@ class CompletePipeline(unittest.TestCase):
     def test_old_profile_and_bad_configuration(self):
         profile = PipelineConfig.from_dict({'conversion':{'note_field':'注记'}})
         self.assertEqual(profile.annotations['conversion']['note_field'], '注记')
-        for value in ({'render':{'enabled':'yes'}}, {'wrong':1}, {'native':{'unknown':1}}, {'input_format':'guess'}):
+        for value in ({'render':{'enabled':'yes'}}, {'render':{'auto_font_size':'yes'}},
+                      {'wrong':1}, {'native':{'unknown':1}}, {'input_format':'guess'}):
             with self.assertRaises(AnnotationError):
                 run_pipeline(self.source, self.root/'bad', value)
 

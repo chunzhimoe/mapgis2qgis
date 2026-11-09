@@ -33,6 +33,7 @@ def main():
         profile.write_text(json.dumps({'strict_native':False}), encoding='utf-8-sig')
         app.load_profile(profile)
         assert app.render.get(), 'Loading a partial profile must retain the drawing checkbox'
+        assert app.auto_font.get()
         app.width.set('180')
         app.dpi.set('96')
         deadline = time.monotonic()+90
@@ -41,6 +42,7 @@ def main():
             if app.result:
                 verify_dataset(output)
                 assert app.picture.width() > 0
+                assert json.loads((output/'map/export.json').read_text())['auto_font_size']
                 assert all(str(button['state']) == 'normal' for button, _ in app.result_buttons)
                 result = {'status':'PASS','actual_window':True,'background_subprocess':True,
                           'map_rendered':(output/'map/map.png').exists(),'preview_visible':True,

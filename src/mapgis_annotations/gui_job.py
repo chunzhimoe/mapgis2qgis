@@ -23,7 +23,7 @@ class JobSpec:
 
 
 def make_job(source, output, profile='', *, render=False, epsg='', factor='', dpi='300', width='1000',
-             font_size='9', font_unit='points', input_format=None):
+             font_size='9', font_unit='points', input_format=None, auto_font_size=None):
     if not str(source).strip() or not str(output).strip():
         raise AnnotationError('请选择输入数据和输出目录')
     source, output = Path(source).expanduser().resolve(), Path(output).expanduser().resolve()
@@ -35,6 +35,8 @@ def make_job(source, output, profile='', *, render=False, epsg='', factor='', dp
     config = PipelineConfig.from_dict(json.loads(Path(profile).read_text(encoding='utf-8-sig'))) if profile else PipelineConfig()
     if input_format is not None:
         config.input_format = input_format
+    if auto_font_size is not None:
+        config.render['auto_font_size'] = auto_font_size
     try:
         if epsg.strip():
             config.native['epsg'] = int(epsg)
