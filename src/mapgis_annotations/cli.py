@@ -97,12 +97,13 @@ def main(argv=None):
                         handle.write(json.dumps(event, ensure_ascii=False) + '\n')
             result = run_pipeline(source, args.output, options, progress=progress,
                                   cancelled=lambda: bool(args.cancel_file and Path(args.cancel_file).exists()))
-            result = {k: result[k] for k in ('status','output','native_summary','annotations','map')}
+            result = {k: result[k] for k in ('status','output','native_summary','annotations','map','spatial_reference')}
         elif args.command == 'from-mapgis':
             from .georef import export_native
             manifest = export_native(args.source, args.output, epsg=args.epsg, factor=args.factor,
                                      style=not args.no_style, georeference=not args.no_georef)
             result = {'status': 'PASS', 'output': manifest['output'], 'map_frame': manifest['map_frame'],
+                      'spatial_reference':manifest['spatial_reference'],
                       'summary': manifest['summary'], 'unreadable': manifest['unreadable'],
                       'missing_project_layers': manifest['missing_project_layers']}
         elif args.command == 'parse':

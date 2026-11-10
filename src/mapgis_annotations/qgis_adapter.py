@@ -12,6 +12,7 @@ from .errors import AnnotationError, MissingDependencyError
 from .shapefiles import publish, sha256
 from .workflow import verify_dataset, write_json
 from .render_views import validate_views, render_views
+from .spatial_reference import export_spatial_reference
 
 
 def export_project(dataset, output, *, width_mm=1000, dpi=300, font_size=9,
@@ -298,11 +299,17 @@ def _export(dataset, stage, verification, width_mm, dpi, font_size, font_family,
     reopened = QgsProject()
     if not reopened.read(str(stage/'map.qgz')) or not all(l.isValid() for l in reopened.mapLayers().values()):
         raise AnnotationError('Project reopening failed')
+    viewport = map_item.extent()
+    render_extent = [viewport.xMinimum(), viewport.yMinimum(), viewport.xMaximum(), viewport.yMaximum()]
+    export_spatial_reference(stage/'data', stage/'spatial_reference.json', dataset=manifest,
+        source=str(dataset), input_format='qgis_export', path_prefix='data',
+        rendering={'crs_wkt':destination.toWkt(), 'extent_xy':render_extent})
     result = {'status':'PASS', 'qgis':Qgis.QGIS_VERSION, 'layers':report, 'rendered_labels':len(labels),
               'font_size':font_size, 'font_unit':font_unit, 'font_family':label_font.family(),
               'fonts':font_report,
               'auto_font_size':auto_font_size, 'font_sizing':font_sizing,
               'render_crs':destination.toWkt(), 'page_mm':[width_mm,height_mm], 'dpi':dpi,
+              'render_extent_xy':render_extent, 'spatial_reference':'spatial_reference.json',
               'input_verification':verification, 'project_reopened':True,
               'excluded_layers':excluded, 'details':detail_results,
               'limitations':['No original symbol-library or font/rotation reconstruction; gray linework.',

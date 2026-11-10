@@ -1,6 +1,10 @@
-## MapGIS2QGIS 0.4.5
+## MapGIS2QGIS 0.4.6
 
 全内置桌面版：Python、Tk GUI、MapGIS 原生转换库、QGIS、PyProj 和 Shapely 均包含在安装包内。
+
+完整转换默认输出根目录 `spatial_reference.json`，GUI完成后点击「空间参考 JSON」查看；原生转换和QGIS地图导出也各保留对应JSON。包含实际逐层PRJ声明、完整WKT2与标准PROJJSON、单位/轴信息、原生换算系数和依据、未定位/无效层，以及独立的制图CRS/范围。支持自定义无EPSG投影、多CRS数据、仅数据流程和已有成果只读补导出，不猜缺失CRS，不重复缩放已导出的坐标。
+
+空间参考JSON纳入产物哈希核验。双平台已安装环境验收增加PROJJSON往返、数据与制图CRS不同、缺失CRS保留、源字节不变、相对路径搬移和GUI按钮检查；`spatial-reference-*.json`报告随Release提供。说明见仓库docs/SPATIAL_REFERENCE.md。
 
 GUI「多选文件/工程」支持 Ctrl/Command 多选或 Shift 连选 WT/WL/WP、MPJ 或 SHP。所选文件作为同一组图层处理，生成一套标准注记、PDF和QGIS工程；不会自动扫描并导入同目录未选择的图层。MPJ引用层与直接选择文件去重，SHP自动带上同名配套文件；原生与SHP分开选择，同名SHP需重命名或分组以免混淆。输入数量/名称与完整运行路径可核对，取消对话框保留选择。
 

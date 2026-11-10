@@ -25,12 +25,18 @@ def main():
         verify_dataset(root/'result/annotations')
         assert result['map']['rendered_labels']==2
         assert (root/'result/map/map.pdf').stat().st_size>1000
+        spatial = json.loads((root/'result/spatial_reference.json').read_text(encoding='utf-8'))
+        assert spatial['main_crs_id'] == 'EPSG:4326'
+        assert spatial['layers']['labels_点']['native_conversion']['factor'] == 1
+        assert (root/'result/native/spatial_reference.json').is_file()
+        assert (root/'result/map/spatial_reference.json').is_file()
         font_report = json.loads((root/'result/map/export.json').read_text())['fonts']
         assert font_report['probe_glyphs_verified']
         assert (root/'result/map'/font_report['font_file']).is_file()
     report = {'status':'PASS','python':sys.executable,'qgis':Qgis.QGIS_VERSION,
               'native_conversion':True,'annotation_conversion':True,'qgis_rendering':True,'hash_verification':True,
               'font_family':font_report['family'], 'chinese_greek_glyphs_verified':True}
+    report['spatial_reference_json_exported'] = True
     Path(sys.argv[1]).write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(json.dumps(report,indent=2))
 

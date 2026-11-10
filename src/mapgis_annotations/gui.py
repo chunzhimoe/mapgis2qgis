@@ -101,7 +101,8 @@ class Workbench:
         actions = ttk.Frame(body)
         actions.pack(fill='x', pady=(12,0))
         self.result_buttons = []
-        for title, relative in (('打开数据','annotations'), ('打开全图','map/map.png'), ('打开工程','map/map.qgz')):
+        for title, relative in (('打开数据','annotations'), ('打开全图','map/map.png'), ('打开工程','map/map.qgz'),
+                                ('空间参考 JSON','spatial_reference.json')):
             button = ttk.Button(actions, text=title, state='disabled', command=lambda p=relative:self.open_result(p))
             button.pack(side='left', padx=(0,8))
             self.result_buttons.append((button, relative))
@@ -249,6 +250,8 @@ class Workbench:
                         self.progress['value'] = 100
                         self.state.set('完成 · %s 个要素，%s 条注记标准化' % (result['audit']['records'], result['annotations']['changed_notes']))
                         self.append('核验通过：'+str(self.result))
+                        if result.get('spatial_reference'):
+                            self.append('空间参考：'+str(self.result/result['spatial_reference']))
                         for button, relative in self.result_buttons:
                             button.configure(state='normal' if (self.result/relative).exists() else 'disabled')
                         picture = next((self.result/p for p in ('map/overview.png','map/preview.png') if (self.result/p).exists()), None)

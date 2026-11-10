@@ -36,6 +36,7 @@ from .mapgis_native import (EXT_KIND, KIND_SUFFIX, native_files, read_native_lay
 from .shapefiles import publish, sha256
 from .native_crs import decode_dms, header_crs
 from .input_selection import normalize_source, source_description, validate_output
+from .spatial_reference import export_spatial_reference
 
 __all__ = ['export_native', 'gk_epsg']
 
@@ -436,6 +437,8 @@ def export_native(source, output, epsg=None, factor=None, style=True, georeferen
             'epsg': sorted({e['epsg'] for e in entries if e['epsg']}),
             'unreadable': len(bad), 'missing_project_layers': len(missing),
             'seconds': round(time.time() - t0, 2)}
+        export_spatial_reference(stage, stage/'spatial_reference.json', native=manifest, input_format='native')
+        manifest['spatial_reference'] = 'spatial_reference.json'
         (stage / 'native_export.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2,
                                                              default=str, allow_nan=False) + '\n', encoding='utf-8')
         publish(stage, output)

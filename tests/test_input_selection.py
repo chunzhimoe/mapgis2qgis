@@ -61,6 +61,8 @@ class ExplicitFileSelection(unittest.TestCase):
         self.assertFalse((self.root/'strict').exists())
         result = run_pipeline([project, self.b], self.root/'partial', {'strict_native':False})
         self.assertEqual(result['native_summary']['missing_project_layers'], 1)
+        reference = json.loads((self.root/'partial/spatial_reference.json').read_text(encoding='utf-8'))
+        self.assertEqual(len(reference['input_issues']['missing_project_layers']), 1)
 
     def shp(self, folder, name):
         path = folder/(name+'.shp')

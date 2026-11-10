@@ -12,6 +12,7 @@ from .shapefiles import companion, publish, sha256
 from .input_selection import normalize_source, source_paths, source_description, validate_output
 from .workflow import WorkflowConfig, run_workflow, verify_dataset, write_json
 from .audit import audit_shapefiles
+from .spatial_reference import export_spatial_reference
 
 
 class PipelineCancelled(AnnotationError):
@@ -181,6 +182,10 @@ def run_pipeline(source, output, config=None, *, progress=None, cancelled=None):
             options = {k: v for k, v in config.render.items() if k != 'enabled'}
             options.setdefault('missing_crs', 'exclude')
             rendered = export_project(stage/'annotations', stage/'map', **options)
+        export_spatial_reference(stage/'annotations', stage/'spatial_reference.json', dataset=annotations,
+            native=native, source=source_description(source), input_format=kind, path_prefix='annotations',
+            rendering={'crs_wkt':rendered['render_crs'], 'extent_xy':rendered['render_extent_xy']}
+                      if rendered else None)
         event('verify', 90)
         if any(sha256(path) != expected for path, expected in sources.items()):
             raise AnnotationError('An original input changed during the pipeline')
@@ -192,6 +197,7 @@ def run_pipeline(source, output, config=None, *, progress=None, cancelled=None):
                 raise AnnotationError('Rendered products failed verification')
         result = {'format_version': 2, 'kind': 'pipeline', 'status': 'PASS', 'source': source_description(source),
                   'input_format': kind, 'output': str(output), 'source_sha256': sources,
+                  'spatial_reference':'spatial_reference.json',
                   'native_summary': native['summary'] if native else None,
                   'audit': {k: v for k, v in audit.items() if k != 'layers'},
                   'annotations': {k: annotations[k] for k in ('converted_layers','converted_records','changed_notes','spatial')},

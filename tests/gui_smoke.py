@@ -62,6 +62,7 @@ def main():
                 assert app.picture.width() > 0
                 assert json.loads((output/'map/export.json').read_text())['auto_font_size']
                 assert all(str(button['state']) == 'normal' for button, _ in app.result_buttons)
+                assert (output/'spatial_reference.json').is_file()
                 if args.multi or args.multi_shp:
                     manifest = json.loads((output/'manifest.json').read_text(encoding='utf-8'))
                     if args.multi:
@@ -77,6 +78,7 @@ def main():
                 result = {'status':'PASS','actual_window':True,'background_subprocess':True,
                           'map_rendered':(output/'map/map.png').exists(),'preview_visible':True,
                           'window_size':[root.winfo_width(),root.winfo_height()]}
+                result['spatial_reference_json_exported'] = True
                 if args.multi or args.multi_shp:
                     result.update(multiselect=True, selected_layers=2, unselected_layer_excluded=True,
                                   source_hashes_verified=True, pdf_exported=(output/'map/map.pdf').is_file())

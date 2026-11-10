@@ -15,6 +15,8 @@ Python：`run_pipeline(source, output, PipelineConfig(...))`，或传入同结�
 
 输出：`native/`（原生输入时）、`annotations/`、`inventory.json/.csv`、可选`map/`、根`manifest.json`。整个目录是一次原子发布；任一步失败不发布新目录，不覆盖输入。根manifest记录全部产物哈希与原始输入哈希。发布前重定位子步骤的暂存路径并重算内层哈希，最终目录可直接verify，子目录annotations也可verify。
 
+0.4.6 默认增加根目录 `spatial_reference.json`，并纳入产物哈希核验；原生及 QGIS 导出目录也各保存自身范围的空间参考 JSON。它记录实际输出 PRJ、完整 WKT/标准 PROJJSON、单位、轴顺序、原生换算和制图 CRS，不变更数据。JSON 结构、逐层缺失/无效状态和旧成果补导出见 [SPATIAL_REFERENCE.md](SPATIAL_REFERENCE.md)。
+
 `progress`回调接收`stage/percent`；`cancelled`回调在阶段边界检查。CLI的`--events`写JSONL，`--cancel-file`供GUI协调停止。取消不会发布输出，长渲染会在当前阶段结束后停止。
 
 原生输入有不可读/缺失图层时默认拒绝完整流程；只有显式`strict_native=false`才允许部分转换，并在native_summary保留数量。无文字的几何图层也可处理。无效/空几何只统计，不自动修复；未安装Shapely时报告geometry_validity_checked=false。

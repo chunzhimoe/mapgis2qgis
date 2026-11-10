@@ -121,6 +121,7 @@ jobs:
           packages=(dist/installers/*.pkg)
           sudo installer -pkg "${packages[0]}" -target /
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
+          "/Applications/MapGIS2QGIS-$version/bin/python" tests/spatial_reference_smoke.py dist/installers/spatial-reference.json
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/installed-gui.json
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/multiselect-gui.json --multi
           "/Applications/MapGIS2QGIS-$version/bin/python" tests/gui_smoke.py dist/installers/multiselect-shp-gui.json --multi-shp
@@ -147,6 +148,8 @@ jobs:
           Get-Content dist/installers/windows-install-stderr.txt -Tail 160
           if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
           & "$prefix/python.exe" tests/installed_runtime_smoke.py dist/installers/installed-runtime.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$prefix/python.exe" tests/spatial_reference_smoke.py dist/installers/spatial-reference.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$prefix/python.exe" tests/gui_smoke.py dist/installers/installed-gui.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -191,6 +194,7 @@ jobs:
           fi
           cp dist/installers/build.json "dist/release/build-$TARGET_PLATFORM.json"
           cp dist/installers/installed-runtime.json "dist/release/runtime-$TARGET_PLATFORM.json"
+          cp dist/installers/spatial-reference.json "dist/release/spatial-reference-$TARGET_PLATFORM.json"
           cp dist/installers/installed-gui.json "dist/release/gui-$TARGET_PLATFORM.json"
           cp dist/installers/multiselect-gui.json "dist/release/multiselect-gui-$TARGET_PLATFORM.json"
           cp dist/installers/multiselect-shp-gui.json "dist/release/multiselect-shp-gui-$TARGET_PLATFORM.json"
